@@ -64,6 +64,8 @@ export const facturasQuery = queryOptions({
   },
 });
 
+export type DecisionConRelaciones = Decision & { factura: Factura | null; proveedor: Proveedor | null };
+
 /** Decisiones con su factura y proveedor, más recientes primero. */
 export const decisionesQuery = queryOptions({
   queryKey: ["decisiones"],
@@ -74,7 +76,7 @@ export const decisionesQuery = queryOptions({
       .select("*, factura:facturas(*), proveedor:proveedores(*)")
       .order("decidido_en", { ascending: false });
     if (error) throw error;
-    return data;
+    return (data ?? []) as unknown as DecisionConRelaciones[];
   },
 });
 

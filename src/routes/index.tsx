@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { datosMaestrosQuery, decisionesQuery, empresaQuery, facturasQuery, type Decision, type Factura, type Proveedor } from "@/lib/datos";
+import { datosMaestrosQuery, decisionesQuery, empresaQuery, facturasQuery, type DecisionConRelaciones } from "@/lib/datos";
 import { ESTILO_DECISION, fmtFechaCorta, fmtMonto } from "@/lib/formato";
 import type { ParametrosPolitica } from "@/lib/motorReglas";
 
