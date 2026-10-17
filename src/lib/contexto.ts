@@ -1,0 +1,108 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { ContextoMotor, DecisionSalida, FacturaRecibidaLike, ParametrosPolitica, TipoDecision } from "@/lib/motorReglas";
+
+/**
+ * Construye el contexto del motor leyendo la base de datos.
+ * Con incluirHistorial (por defecto) incluye TODAS las facturas y decisiones
+ * ya guardadas, para que R3 (duplicados), R9 (presupuesto) y R10 (saldo)
+ * consideren lo que ya existe y no solo el lote en curso.
+ */
+export async function construirContexto(opciones?: { incluirHistorial?: boolean }): Promise<ContextoMotor> {
+  const incluirHistorial = opciones?.incluirHistorial ?? true;
+
+  const [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios, facturas, decisiones] = await Promise.all([
+    supabase.from("politicas").select("*").eq("vigente", true).limit(1).maybeSingle(),
+    supabase.from("tipos_cambio").select("*"),
+    supabase.from("proveedores").select("*"),
+    supabase.from("contratos").select("*"),
+    supabase.from("cuentas_bancarias").select("*"),
+    supabase.from("pagos_previos").select("*"),
+    incluirHistorial
+      ? supabase.from("facturas").select("id, codigo, emisor, numero, fecha_recepcion, canal, monto, moneda")
+      : Promise.resolve({ data: [], error: null }),
+    incluirHistorial
+      ? supabase.from("decisiones").select("*, factura:facturas!decisiones_factura_id_fkey(id, numero, fecha_recepcion, monto, moneda)")
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  for (const r of [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios, facturas, decisiones]) {
+    if (r.error) throw r.error;
+  }
+  if (!politica.data) throw new Error("No hay política vigente");
+
+  const tasas = tiposCambio.data ?? [];
+  const cuentasLista = cuentas.data ?? [];
+
+  // Última decisión por factura (para saber si una recepción previa sigue viva)
+  type FilaDecision = {
+    id: string;
+    factura_id: string;
+    decision: TipoDecision;
+    estado: string;
+    decidido_en: string;
+    monto_usd: number | null;
+    categoria: string | null;
+    cuenta_pago: string | null;
+    fecha_programada_pago: string | null;
+    proveedor_id: string | null;
+    factura: { id: string; numero: string | null; fecha_recepcion: string | null; monto: number | null; moneda: string | null } | null;
+  };
+  const filas = (decisiones.data ?? []) as unknown as FilaDecision[];
+  const ultimaPorFactura = new Map<string, FilaDecision>();
+  for (const d of filas) {
+    const prev = ultimaPorFactura.get(d.factura_id);
+    if (!prev || d.decidido_en > prev.decidido_en) ultimaPorFactura.set(d.factura_id, d);
+  }
+
+  const facturasRecibidas: FacturaRecibidaLike[] = (facturas.data ?? []).map((f) => ({
+    id: f.id,
+    codigo: f.codigo ?? undefined,
+    emisor: f.emisor,
+    numero: f.numero,
+    fecha_recepcion: f.fecha_recepcion ?? "",
+    canal: f.canal,
+    decision: ultimaPorFactura.get(f.id)?.decision,
+  }));
+
+  const decisionesPrevias: DecisionSalida[] = filas.map((d) => {
+    const cuenta = d.cuenta_pago ? cuentasLista.find((c) => c.id === d.cuenta_pago) : undefined;
+    const f = d.factura;
+    let montoCuenta: number | null = null;
+    if (cuenta && f?.monto != null && f.moneda) {
+      if (f.moneda === cuenta.moneda) montoCuenta = f.monto;
+      else if (d.monto_usd != null) {
+        const tasa = cuenta.moneda === "USD" ? 1 : tasas.find((t) => t.moneda === cuenta.moneda)?.por_usd;
+        if (tasa) montoCuenta = Math.round(d.monto_usd * tasa * 100) / 100;
+      }
+    }
+    return {
+      decision: d.decision,
+      controles: [],
+      motivo: "",
+      monto_usd: d.monto_usd,
+      proveedor_id: d.proveedor_id,
+      categoria: d.categoria,
+      cuenta_pago: d.cuenta_pago,
+      fecha_programada_pago: d.fecha_programada_pago,
+      escalar_a: null,
+      factura_relacionada_id: null,
+      politica_version: "",
+      estado: d.estado === "pendiente_aprobacion" ? "pendiente_aprobacion" : "final",
+      decidido_por: "",
+      monto_cuenta: montoCuenta,
+      moneda_cuenta: cuenta?.moneda ?? null,
+      periodo: (f?.fecha_recepcion ?? d.decidido_en).slice(0, 7),
+    };
+  });
+
+  return {
+    politicaVersion: politica.data.version,
+    parametros: politica.data.parametros as unknown as ParametrosPolitica,
+    tiposCambio: tasas,
+    proveedores: proveedores.data ?? [],
+    contratos: contratos.data ?? [],
+    cuentas: cuentasLista,
+    pagosPrevios: pagosPrevios.data ?? [],
+    decisionesPrevias,
+    facturasRecibidas,
+  };
+}

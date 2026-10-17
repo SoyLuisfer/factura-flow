@@ -1,15 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, MinusCircle, AlertCircle, ChevronDown, ChevronRight, Play, DatabaseZap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { datosMaestrosQuery, reiniciarDemo } from "@/lib/datos";
+import { construirContexto } from "@/lib/contexto";
 import { supabase } from "@/integrations/supabase/client";
 import { CASOS_PRUEBA } from "@/lib/casosPrueba";
-import { procesarLote, type ContextoMotor, type Control, type ParametrosPolitica, type ResultadoLote } from "@/lib/motorReglas";
+import { procesarLote, type Control, type ResultadoLote } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/banco-pruebas")({
   head: () => ({
@@ -45,33 +50,78 @@ const VARIANTES_DECISION: Record<string, "default" | "destructive" | "secondary"
   POSTERGAR: "outline",
 };
 
+type ResultadoDobleCarga = { ok: boolean; detalle: string };
+
+/** Segunda pasada en memoria: todo lo decidido en la primera debe salir FRENAR por duplicado y ningún presupuesto debe sobregirarse. */
+function verificarDobleCarga(primera: ResultadoLote[], ctx: Parameters<typeof procesarLote>[1]): ResultadoDobleCarga {
+  const ctx2 = {
+    ...ctx,
+    decisionesPrevias: [...ctx.decisionesPrevias, ...primera.map((r) => r.decision)],
+    facturasRecibidas: [
+      ...ctx.facturasRecibidas,
+      ...primera.map((r) => ({
+        id: r.factura.id,
+        codigo: r.factura.codigo,
+        emisor: r.factura.emisor,
+        numero: r.factura.numero,
+        fecha_recepcion: r.factura.fecha_recepcion,
+        canal: r.factura.canal,
+        decision: r.decision.decision,
+      })),
+    ],
+  };
+  const segunda = procesarLote(CASOS_PRUEBA, ctx2);
+
+  for (let i = 0; i < primera.length; i++) {
+    const d1 = primera[i]!.decision.decision;
+    const d2 = segunda[i]!.decision.decision;
+    if (d1 !== "FRENAR" && d2 !== "FRENAR") {
+      return { ok: false, detalle: `${primera[i]!.factura.codigo}: primera pasada ${d1}, segunda ${d2} (debía ser FRENAR por duplicado)` };
+    }
+  }
+
+  // Presupuesto: consumo PAGAR por categoría y periodo en ambas pasadas ≤ presupuesto
+  const presupuestos = ctx.parametros.presupuesto_por_categoria_usd;
+  const consumo = new Map<string, number>();
+  for (const r of [...primera, ...segunda]) {
+    const d = r.decision;
+    if (d.decision !== "PAGAR" || !d.categoria || !d.periodo) continue;
+    const clave = `${d.categoria}|${d.periodo}`;
+    consumo.set(clave, (consumo.get(clave) ?? 0) + (d.monto_usd ?? 0));
+  }
+  for (const [clave, total] of consumo) {
+    const cat = clave.split("|")[0]!;
+    const presupuesto = presupuestos[cat];
+    if (presupuesto != null && total > presupuesto + 0.005) {
+      return { ok: false, detalle: `Categoría ${cat}: consumido USD ${total.toFixed(2)} > presupuesto USD ${presupuesto}` };
+    }
+  }
+  return { ok: true, detalle: "Toda factura reenviada se frenó por duplicado y ningún presupuesto se sobregiró." };
+}
+
 function BancoPruebas() {
   const qc = useQueryClient();
-  const { data: maestros } = useSuspenseQuery(datosMaestrosQuery);
+  useSuspenseQuery(datosMaestrosQuery);
   const [resultados, setResultados] = useState<ResultadoLote[] | null>(null);
+  const [dobleCarga, setDobleCarga] = useState<ResultadoDobleCarga | null>(null);
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const [corriendo, setCorriendo] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [reiniciando, setReiniciando] = useState(false);
+  const [confirmacion, setConfirmacion] = useState<"cargar" | "reiniciar" | null>(null);
 
-  function construirContexto(): ContextoMotor {
-    return {
-      politicaVersion: maestros.politica.version,
-      parametros: maestros.politica.parametros as unknown as ParametrosPolitica,
-      tiposCambio: maestros.tiposCambio,
-      proveedores: maestros.proveedores,
-      contratos: maestros.contratos,
-      cuentas: maestros.cuentas,
-      pagosPrevios: maestros.pagosPrevios,
-      decisionesPrevias: [],
-      facturasRecibidas: [],
-    };
+  /** Contexto limpio (solo datos maestros): la regresión corre como si la bandeja estuviera vacía. */
+  async function contextoLimpio() {
+    return construirContexto({ incluirHistorial: false });
   }
 
-  function correrPruebas() {
+  async function correrPruebas() {
     setCorriendo(true);
     try {
-      setResultados(procesarLote(CASOS_PRUEBA, construirContexto()));
+      const ctx = await contextoLimpio();
+      const res = procesarLote(CASOS_PRUEBA, ctx);
+      setResultados(res);
+      setDobleCarga(verificarDobleCarga(res, ctx));
       toast.success("Pruebas ejecutadas en memoria (sin tocar la base)");
     } catch (e) {
       toast.error("Error al correr pruebas: " + (e as Error).message);
@@ -81,9 +131,15 @@ function BancoPruebas() {
   }
 
   async function cargarEnBandeja() {
-    if (!confirm("Se insertarán los 18 casos como facturas reales y se guardarán sus decisiones y eventos. ¿Continuar?")) return;
     setCargando(true);
     try {
+      // Idempotente: primero deja la base como "Reiniciar datos demo"
+      await reiniciarDemo();
+
+      // Contexto con el historial recién reiniciado (vacío), ANTES de insertar,
+      // para que las facturas del lote no se detecten como duplicados de sí mismas.
+      const ctx = await construirContexto();
+
       // 1. Insertar las facturas
       const facturasInsert = CASOS_PRUEBA.map((c) => ({
         codigo: c.codigo,
@@ -109,7 +165,7 @@ function BancoPruebas() {
 
       // 2. Procesar con el motor (con los ids reales para enlazar duplicados)
       const casosConId = CASOS_PRUEBA.map((c) => ({ ...c, id: idPorCodigo.get(c.codigo) }));
-      const res = procesarLote(casosConId, construirContexto());
+      const res = procesarLote(casosConId, ctx);
 
       // 3. Guardar decisiones y eventos
       const ahora = new Date().toISOString();
@@ -144,6 +200,7 @@ function BancoPruebas() {
       if (errE) throw errE;
 
       setResultados(res);
+      setDobleCarga(verificarDobleCarga(res, ctx));
       await qc.invalidateQueries();
       toast.success("18 casos cargados en la bandeja y procesados");
     } catch (e) {
@@ -154,11 +211,11 @@ function BancoPruebas() {
   }
 
   async function reiniciar() {
-    if (!confirm("Se borrarán facturas, decisiones y eventos, y se recargarán los datos maestros. ¿Continuar?")) return;
     setReiniciando(true);
     try {
       await reiniciarDemo();
       setResultados(null);
+      setDobleCarga(null);
       await qc.invalidateQueries();
       toast.success("Datos demo reiniciados");
     } catch (e) {
@@ -190,6 +247,7 @@ function BancoPruebas() {
       return ["PAGAR", "FRENAR", "POSTERGAR"].includes(esperado ?? "") && r.decision.decision === esperado;
     }).length ?? 0;
 
+
   return (
     <div className="px-6 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Banco de pruebas</h1>
@@ -199,19 +257,19 @@ function BancoPruebas() {
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Button onClick={correrPruebas} disabled={corriendo}>
-          <Play className="mr-2 h-4 w-4" /> Correr pruebas
+          <Play className="mr-2 h-4 w-4" /> {corriendo ? "Corriendo…" : "Correr pruebas"}
         </Button>
-        <Button variant="secondary" onClick={cargarEnBandeja} disabled={cargando}>
+        <Button variant="secondary" onClick={() => setConfirmacion("cargar")} disabled={cargando}>
           <DatabaseZap className="mr-2 h-4 w-4" /> {cargando ? "Cargando…" : "Cargar los 18 casos en la bandeja"}
         </Button>
-        <Button variant="outline" className="border-destructive bg-card text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={reiniciar} disabled={reiniciando}>
+        <Button variant="outline" className="border-destructive bg-card text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => setConfirmacion("reiniciar")} disabled={reiniciando}>
           {reiniciando ? "Reiniciando…" : "Reiniciar datos demo"}
         </Button>
       </div>
 
       {resultados && (
         <>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="mt-8 grid gap-4 sm:grid-cols-4">
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Coincidencias</div>
               <div className="mt-1 text-2xl font-semibold">{coincidencias}/{total}</div>
@@ -223,6 +281,13 @@ function BancoPruebas() {
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Autonomía</div>
               <div className="mt-1 text-2xl font-semibold">{Math.round((autonomos / total) * 100)}%</div>
+            </div>
+            <div className="rounded-lg border bg-card p-4">
+              <div className="text-sm text-muted-foreground">Doble carga</div>
+              <div className={`mt-1 text-2xl font-semibold ${dobleCarga?.ok ? "text-decision-pagar" : "text-decision-frenar"}`}>
+                {dobleCarga ? (dobleCarga.ok ? "OK" : "FALLA") : "—"}
+              </div>
+              {dobleCarga && <div className="mt-1 text-xs text-muted-foreground">{dobleCarga.detalle}</div>}
             </div>
           </div>
 
@@ -248,8 +313,8 @@ function BancoPruebas() {
                   const ok = r.decision.decision === caso.esperado;
                   const abierto = abiertos.has(caso.codigo);
                   return (
-                    <>
-                      <TableRow key={caso.codigo} className="cursor-pointer" onClick={() => toggle(caso.codigo)}>
+                    <Fragment key={caso.codigo}>
+                      <TableRow className="cursor-pointer" onClick={() => toggle(caso.codigo)}>
                         <TableCell>{abierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
                         <TableCell className="font-mono text-xs">{caso.codigo}</TableCell>
                         <TableCell>{caso.canal}</TableCell>
@@ -264,7 +329,7 @@ function BancoPruebas() {
                         <TableCell className="text-xs text-muted-foreground">{r.decision.motivo}</TableCell>
                       </TableRow>
                       {abierto && (
-                        <TableRow key={`${caso.codigo}-detalle`}>
+                        <TableRow>
                           <TableCell colSpan={10} className="bg-muted/40 p-4">
                             <div className="space-y-2">
                               {r.decision.controles.map((c) => {
@@ -284,7 +349,7 @@ function BancoPruebas() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
@@ -301,6 +366,32 @@ function BancoPruebas() {
           </p>
         </div>
       )}
+
+      <AlertDialog open={confirmacion !== null} onOpenChange={(open) => !open && setConfirmacion(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmacion === "cargar" ? "Cargar los 18 casos" : "Reiniciar datos demo"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmacion === "cargar"
+                ? "Se borrarán las facturas, decisiones y eventos actuales y se cargarán los 18 casos como facturas reales, con sus decisiones y eventos. ¿Continuar?"
+                : "Se borrarán facturas, decisiones y eventos, y se recargarán los datos maestros. ¿Continuar?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const accion = confirmacion;
+                setConfirmacion(null);
+                if (accion === "cargar") void cargarEnBandeja();
+                else if (accion === "reiniciar") void reiniciar();
+              }}
+            >
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
