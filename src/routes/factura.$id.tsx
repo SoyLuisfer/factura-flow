@@ -35,7 +35,7 @@ export const Route = createFileRoute("/factura/$id")({
 const ICONO_CONTROL: Record<ResultadoControl, React.ReactNode> = {
   OK: <CheckCircle2 className="h-4 w-4 text-decision-pagar" />,
   FALLA: <XCircle className="h-4 w-4 text-decision-frenar" />,
-  NO_APLICA: <MinusCircle className="h-4 w-4 text-muted-foreground" />,
+  NO_APLICA: <MinusCircle className="h-4 w-4 text-control-no-aplica" />,
   NO_EVALUABLE: <AlertTriangle className="h-4 w-4 text-decision-escalar" />,
 };
 
@@ -362,7 +362,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
           <Button onClick={aprobar} disabled={guardando} className="bg-decision-pagar text-decision-pagar-foreground hover:opacity-90">
             Aprobar pago
           </Button>
-          <Button onClick={rechazar} disabled={guardando} variant="destructive">
+          <Button onClick={rechazar} disabled={guardando} className="bg-decision-frenar text-decision-frenar-foreground hover:opacity-90">
             Rechazar
           </Button>
         </div>

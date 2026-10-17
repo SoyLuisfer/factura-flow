@@ -4,7 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
+/* All colors are theme tokens (hex allowed for Banca institucional palette).
  * Design system definition.
  *
  * The @theme inline block maps CSS custom properties to Tailwind utility
@@ -36,6 +36,9 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-acento-suave: var(--acento-suave);
+  --color-control-no-aplica: var(--control-no-aplica);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -75,46 +78,49 @@
   --radius: 0.5rem;
   --fuente-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --fuente-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --background: oklch(0.975 0.008 85);
-  --foreground: oklch(0.22 0.03 160);
-  --card: oklch(0.99 0.005 85);
-  --card-foreground: oklch(0.22 0.03 160);
-  --popover: oklch(0.99 0.005 85);
-  --popover-foreground: oklch(0.22 0.03 160);
-  --primary: oklch(0.38 0.08 160);
-  --primary-foreground: oklch(0.98 0.01 85);
-  --secondary: oklch(0.93 0.02 150);
-  --secondary-foreground: oklch(0.3 0.06 160);
-  --muted: oklch(0.94 0.01 85);
-  --muted-foreground: oklch(0.5 0.02 160);
-  --accent: oklch(0.92 0.04 85);
-  --accent-foreground: oklch(0.3 0.05 60);
-  --destructive: oklch(0.55 0.2 27);
-  --destructive-foreground: oklch(0.98 0.01 85);
-  --border: oklch(0.88 0.015 85);
-  --input: oklch(0.88 0.015 85);
-  --ring: oklch(0.38 0.08 160);
-  --chart-1: oklch(0.5 0.12 160);
-  --chart-2: oklch(0.6 0.2 27);
-  --chart-3: oklch(0.7 0.15 75);
-  --chart-4: oklch(0.55 0.1 240);
-  --chart-5: oklch(0.6 0.05 160);
-  --sidebar: oklch(0.24 0.035 160);
-  --sidebar-foreground: oklch(0.93 0.01 85);
-  --sidebar-primary: oklch(0.78 0.12 85);
-  --sidebar-primary-foreground: oklch(0.22 0.03 160);
-  --sidebar-accent: oklch(0.32 0.04 160);
-  --sidebar-accent-foreground: oklch(0.98 0.01 85);
-  --sidebar-border: oklch(0.32 0.03 160);
-  --sidebar-ring: oklch(0.78 0.12 85);
-  --decision-pagar: oklch(0.5 0.11 155);
-  --decision-pagar-foreground: oklch(0.98 0.01 85);
-  --decision-frenar: oklch(0.55 0.19 27);
-  --decision-frenar-foreground: oklch(0.98 0.01 85);
-  --decision-escalar: oklch(0.68 0.14 75);
-  --decision-escalar-foreground: oklch(0.25 0.03 75);
-  --decision-postergar: oklch(0.55 0.12 240);
-  --decision-postergar-foreground: oklch(0.98 0.01 85);
+  --background: #F5F7FA;
+  --foreground: #101828;
+  --card: #FFFFFF;
+  --card-foreground: #101828;
+  --popover: #FFFFFF;
+  --popover-foreground: #101828;
+  --primary: #1D4ED8;
+  --primary-hover: #1E40AF;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E7EEFB;
+  --secondary-foreground: #1E40AF;
+  --muted: #F2F4F7;
+  --muted-foreground: #667085;
+  --accent: #E7EEFB;
+  --accent-foreground: #1E40AF;
+  --acento-suave: #E7EEFB;
+  --destructive: #B42318;
+  --destructive-foreground: #FFFFFF;
+  --border: #E4E7EC;
+  --input: #D0D5DD;
+  --ring: #1D4ED8;
+  --chart-1: #1D4ED8;
+  --chart-2: #B42318;
+  --chart-3: #B54708;
+  --chart-4: #5925DC;
+  --chart-5: #067647;
+  --sidebar: #0B1F3A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #1D4ED8;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #16325C;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #1B3358;
+  --sidebar-ring: #1D4ED8;
+  --decision-pagar: #067647;
+  --decision-pagar-foreground: #FFFFFF;
+  --decision-frenar: #B42318;
+  --decision-frenar-foreground: #FFFFFF;
+  --decision-escalar: #B54708;
+  --decision-escalar-foreground: #FFFFFF;
+  --decision-postergar: #5925DC;
+  --decision-postergar-foreground: #FFFFFF;
+  --control-no-aplica: #98A2B3;
 }
 
 .dark {
