@@ -43,3 +43,31 @@ export const proveedoresQuery = queryOptions({
     return data;
   },
 });
+
+/** Carga todos los datos maestros que necesita el motor de reglas. */
+export const datosMaestrosQuery = queryOptions({
+  queryKey: ["datos-maestros"],
+  queryFn: async () => {
+    await seedDemo();
+    const [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios] = await Promise.all([
+      supabase.from("politicas").select("*").eq("vigente", true).limit(1).maybeSingle(),
+      supabase.from("tipos_cambio").select("*"),
+      supabase.from("proveedores").select("*"),
+      supabase.from("contratos").select("*"),
+      supabase.from("cuentas_bancarias").select("*"),
+      supabase.from("pagos_previos").select("*"),
+    ]);
+    for (const r of [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios]) {
+      if (r.error) throw r.error;
+    }
+    if (!politica.data) throw new Error("No hay política vigente");
+    return {
+      politica: politica.data,
+      tiposCambio: tiposCambio.data ?? [],
+      proveedores: proveedores.data ?? [],
+      contratos: contratos.data ?? [],
+      cuentas: cuentas.data ?? [],
+      pagosPrevios: pagosPrevios.data ?? [],
+    };
+  },
+});
