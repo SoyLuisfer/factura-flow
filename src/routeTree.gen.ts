@@ -15,6 +15,7 @@ import { Route as BancoPruebasRouteImport } from './routes/banco-pruebas'
 import { Route as ProveedoresRouteImport } from './routes/proveedores'
 import { Route as ReglasRouteImport } from './routes/reglas'
 import { Route as SubirRouteImport } from './routes/subir'
+import { Route as FacturaIdRouteImport } from './routes/factura.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const SubirRoute = SubirRouteImport.update({
   path: '/subir',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FacturaIdRoute = FacturaIdRouteImport.update({
+  id: '/factura/$id',
+  path: '/factura/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/proveedores': typeof ProveedoresRoute
   '/reglas': typeof ReglasRoute
   '/subir': typeof SubirRoute
+  '/factura/$id': typeof FacturaIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/proveedores': typeof ProveedoresRoute
   '/reglas': typeof ReglasRoute
   '/subir': typeof SubirRoute
+  '/factura/$id': typeof FacturaIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/proveedores': typeof ProveedoresRoute
   '/reglas': typeof ReglasRoute
   '/subir': typeof SubirRoute
+  '/factura/$id': typeof FacturaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/proveedores'
     | '/reglas'
     | '/subir'
+    | '/factura/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/proveedores'
     | '/reglas'
     | '/subir'
+    | '/factura/$id'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/proveedores'
     | '/reglas'
     | '/subir'
+    | '/factura/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   ProveedoresRoute: typeof ProveedoresRoute
   ReglasRoute: typeof ReglasRoute
   SubirRoute: typeof SubirRoute
+  FacturaIdRoute: typeof FacturaIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SubirRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/factura/$id': {
+      id: '/factura/$id'
+      path: '/factura/$id'
+      fullPath: '/factura/$id'
+      preLoaderRoute: typeof FacturaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProveedoresRoute: ProveedoresRoute,
   ReglasRoute: ReglasRoute,
   SubirRoute: SubirRoute,
+  FacturaIdRoute: FacturaIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
