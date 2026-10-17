@@ -1,24 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Proximamente } from "@/components/proximamente";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Tablero — Contralor" },
+      { name: "description", content: "Agente de cuentas por pagar de Andes Labs: decisiones auditables por factura." },
+      { property: "og:title", content: "Tablero — Contralor" },
+      { property: "og:description", content: "Agente de cuentas por pagar con reglas deterministas y registro auditable." },
+    ],
+  }),
+  component: () => <Proximamente titulo="Tablero" descripcion="Resumen de facturas y decisiones del agente." />,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}

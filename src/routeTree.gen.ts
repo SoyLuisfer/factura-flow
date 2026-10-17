@@ -10,33 +10,102 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as BancoPruebasRouteImport } from './routes/banco-pruebas'
+import { Route as ProveedoresRouteImport } from './routes/proveedores'
+import { Route as ReglasRouteImport } from './routes/reglas'
+import { Route as SubirRouteImport } from './routes/subir'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuditoriaRoute = AuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BancoPruebasRoute = BancoPruebasRouteImport.update({
+  id: '/banco-pruebas',
+  path: '/banco-pruebas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProveedoresRoute = ProveedoresRouteImport.update({
+  id: '/proveedores',
+  path: '/proveedores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReglasRoute = ReglasRouteImport.update({
+  id: '/reglas',
+  path: '/reglas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubirRoute = SubirRouteImport.update({
+  id: '/subir',
+  path: '/subir',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/banco-pruebas': typeof BancoPruebasRoute
+  '/proveedores': typeof ProveedoresRoute
+  '/reglas': typeof ReglasRoute
+  '/subir': typeof SubirRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/banco-pruebas': typeof BancoPruebasRoute
+  '/proveedores': typeof ProveedoresRoute
+  '/reglas': typeof ReglasRoute
+  '/subir': typeof SubirRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/banco-pruebas': typeof BancoPruebasRoute
+  '/proveedores': typeof ProveedoresRoute
+  '/reglas': typeof ReglasRoute
+  '/subir': typeof SubirRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auditoria'
+    | '/banco-pruebas'
+    | '/proveedores'
+    | '/reglas'
+    | '/subir'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auditoria'
+    | '/banco-pruebas'
+    | '/proveedores'
+    | '/reglas'
+    | '/subir'
+  id:
+    | '__root__'
+    | '/'
+    | '/auditoria'
+    | '/banco-pruebas'
+    | '/proveedores'
+    | '/reglas'
+    | '/subir'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuditoriaRoute: typeof AuditoriaRoute
+  BancoPruebasRoute: typeof BancoPruebasRoute
+  ProveedoresRoute: typeof ProveedoresRoute
+  ReglasRoute: typeof ReglasRoute
+  SubirRoute: typeof SubirRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +117,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auditoria': {
+      id: '/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/banco-pruebas': {
+      id: '/banco-pruebas'
+      path: '/banco-pruebas'
+      fullPath: '/banco-pruebas'
+      preLoaderRoute: typeof BancoPruebasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proveedores': {
+      id: '/proveedores'
+      path: '/proveedores'
+      fullPath: '/proveedores'
+      preLoaderRoute: typeof ProveedoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reglas': {
+      id: '/reglas'
+      path: '/reglas'
+      fullPath: '/reglas'
+      preLoaderRoute: typeof ReglasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subir': {
+      id: '/subir'
+      path: '/subir'
+      fullPath: '/subir'
+      preLoaderRoute: typeof SubirRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuditoriaRoute: AuditoriaRoute,
+  BancoPruebasRoute: BancoPruebasRoute,
+  ProveedoresRoute: ProveedoresRoute,
+  ReglasRoute: ReglasRoute,
+  SubirRoute: SubirRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
