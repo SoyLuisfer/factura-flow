@@ -44,6 +44,89 @@ export const proveedoresQuery = queryOptions({
   },
 });
 
+export const empresaQuery = queryOptions({
+  queryKey: ["empresa"],
+  queryFn: async () => {
+    await seedDemo();
+    const { data, error } = await supabase.from("empresa").select("*").limit(1).maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+});
+
+export const facturasQuery = queryOptions({
+  queryKey: ["facturas"],
+  queryFn: async () => {
+    await seedDemo();
+    const { data, error } = await supabase.from("facturas").select("*").order("fecha_recepcion").order("codigo");
+    if (error) throw error;
+    return data;
+  },
+});
+
+/** Decisiones con su factura y proveedor, más recientes primero. */
+export const decisionesQuery = queryOptions({
+  queryKey: ["decisiones"],
+  queryFn: async () => {
+    await seedDemo();
+    const { data, error } = await supabase
+      .from("decisiones")
+      .select("*, factura:facturas(*), proveedor:proveedores(*)")
+      .order("decidido_en", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+});
+
+export const eventosQuery = queryOptions({
+  queryKey: ["eventos"],
+  queryFn: async () => {
+    await seedDemo();
+    const { data, error } = await supabase.from("registro_eventos").select("*").order("fecha_hora", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+});
+
+export const politicasQuery = queryOptions({
+  queryKey: ["politicas"],
+  queryFn: async () => {
+    await seedDemo();
+    const { data, error } = await supabase.from("politicas").select("*").order("creada_en");
+    if (error) throw error;
+    return data;
+  },
+});
+
+export const contratosQuery = queryOptions({
+  queryKey: ["contratos"],
+  queryFn: async () => {
+    await seedDemo();
+    const { data, error } = await supabase.from("contratos").select("*").order("id");
+    if (error) throw error;
+    return data;
+  },
+});
+
+/** Detalle de una factura: factura, sus decisiones (más reciente primero) y sus eventos. */
+export function facturaDetalleQuery(id: string) {
+  return queryOptions({
+    queryKey: ["factura", id],
+    queryFn: async () => {
+      const [factura, decisiones, eventos] = await Promise.all([
+        supabase.from("facturas").select("*").eq("id", id).maybeSingle(),
+        supabase.from("decisiones").select("*, proveedor:proveedores(*)").eq("factura_id", id).order("decidido_en", { ascending: false }),
+        supabase.from("registro_eventos").select("*").eq("factura_id", id).order("fecha_hora"),
+      ]);
+      if (factura.error) throw factura.error;
+      if (decisiones.error) throw decisiones.error;
+      if (eventos.error) throw eventos.error;
+      if (!factura.data) throw new Error("Factura no encontrada");
+      return { factura: factura.data, decisiones: decisiones.data ?? [], eventos: eventos.data ?? [] };
+    },
+  });
+}
+
 /** Carga todos los datos maestros que necesita el motor de reglas. */
 export const datosMaestrosQuery = queryOptions({
   queryKey: ["datos-maestros"],
