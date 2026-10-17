@@ -32,10 +32,10 @@ const ICONOS: Record<Control["resultado"], typeof CheckCircle2> = {
 };
 
 const COLORES: Record<Control["resultado"], string> = {
-  OK: "text-green-600",
-  FALLA: "text-red-600",
-  NO_APLICA: "text-muted-foreground",
-  NO_EVALUABLE: "text-amber-600",
+  OK: "text-decision-pagar",
+  FALLA: "text-decision-frenar",
+  NO_APLICA: "text-control-no-aplica",
+  NO_EVALUABLE: "text-decision-escalar",
 };
 
 const VARIANTES_DECISION: Record<string, "default" | "destructive" | "secondary" | "outline"> = {
@@ -204,7 +204,7 @@ function BancoPruebas() {
         <Button variant="secondary" onClick={cargarEnBandeja} disabled={cargando}>
           <DatabaseZap className="mr-2 h-4 w-4" /> {cargando ? "Cargando…" : "Cargar los 18 casos en la bandeja"}
         </Button>
-        <Button variant="destructive" onClick={reiniciar} disabled={reiniciando}>
+        <Button variant="outline" className="border-destructive bg-card text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={reiniciar} disabled={reiniciando}>
           {reiniciando ? "Reiniciando…" : "Reiniciar datos demo"}
         </Button>
       </div>
@@ -218,7 +218,7 @@ function BancoPruebas() {
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Seguridad (pagos fuera de reglas)</div>
-              <div className={`mt-1 text-2xl font-semibold ${inseguros === 0 ? "text-green-600" : "text-red-600"}`}>{inseguros}</div>
+              <div className={`mt-1 text-2xl font-semibold ${inseguros === 0 ? "text-decision-pagar" : "text-decision-frenar"}`}>{inseguros}</div>
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Autonomía</div>

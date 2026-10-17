@@ -113,8 +113,8 @@ function Tablero() {
                 {fmtMonto(p.consumido, "USD")} / {fmtMonto(p.presupuesto, "USD")}
               </span>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-              <div className={`h-full rounded-full ${p.pct >= 100 ? "bg-decision-frenar" : "bg-decision-pagar"}`} style={{ width: `${p.pct}%` }} />
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-acento-suave">
+              <div className={`h-full rounded-full ${p.pct > 90 ? "bg-decision-escalar" : "bg-primary"}`} style={{ width: `${p.pct}%` }} />
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
               Disponible: <span className="font-mono tabular-nums">{fmtMonto(Math.max(0, p.presupuesto - p.consumido), "USD")}</span>
