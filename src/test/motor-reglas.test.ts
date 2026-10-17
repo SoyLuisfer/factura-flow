@@ -18,7 +18,7 @@ const ctxBase: ContextoMotor = {
   parametros,
   tiposCambio: [{ moneda: "GTQ", por_usd: 7.7 }],
   proveedores: [
-    { id: "V001", nombre: "Carlos Méndez", activo: true, expediente_completo: true, categoria: "Contratistas", cuenta_pago: "BANK-USD", permite_conversion: false, banco_beneficiario: "Banco Azteca Demo", cuenta_beneficiario: "DEMO-MX-330-1209" },
+    { id: "V001", nombre: "Carlos Méndez", activo: true, expediente_completo: true, categoria: "Contratistas", cuenta_pago: "BANK-USD", permite_conversion: true, banco_beneficiario: "Banco Azteca Demo", cuenta_beneficiario: "DEMO-MX-330-1209" },
   ],
   contratos: [],
   cuentas: [{ id: "BANK-USD", banco: "Banco Andino Demo", numero: "00-11", moneda: "USD", saldo_disponible: 100000 }],
