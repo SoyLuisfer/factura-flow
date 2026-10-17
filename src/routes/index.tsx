@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { datosMaestrosQuery, decisionesQuery, empresaQuery, facturasQuery, type Decision, type Factura, type Proveedor } from "@/lib/datos";
-import { ESTILO_DECISION, fmtFecha, fmtFechaCorta, fmtMonto } from "@/lib/formato";
+import { ESTILO_DECISION, fmtFechaCorta, fmtMonto } from "@/lib/formato";
 import type { ParametrosPolitica } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/")({
@@ -234,6 +234,7 @@ function TablaDecisiones({
   columnas: string[];
   renderFila: (d: DecisionConRelaciones) => React.ReactNode;
 }) {
+  const navigate = useNavigate();
   if (filas.length === 0) {
     return <p className="mt-4 rounded-lg border bg-card p-6 text-sm text-muted-foreground">No hay facturas en esta categoría.</p>;
   }
@@ -250,15 +251,11 @@ function TablaDecisiones({
         </TableHeader>
         <TableBody>
           {filas.map((d) => (
-            <TableRow key={d.id} className="cursor-pointer">
+            <TableRow key={d.id} className="cursor-pointer" onClick={() => navigate({ to: "/factura/$id", params: { id: d.factura_id } })}>
               <TableCell>
-                <Link to="/factura/$id" params={{ id: d.factura_id }} className="block">
-                  <Badge className={ESTILO_DECISION[d.decision as keyof typeof ESTILO_DECISION]}>{d.decision}</Badge>
-                </Link>
+                <Badge className={ESTILO_DECISION[d.decision as keyof typeof ESTILO_DECISION]}>{d.decision}</Badge>
               </TableCell>
-              <Link to="/factura/$id" params={{ id: d.factura_id }} className="contents">
-                {renderFila(d)}
-              </Link>
+              {renderFila(d)}
             </TableRow>
           ))}
         </TableBody>
@@ -266,6 +263,3 @@ function TablaDecisiones({
     </div>
   );
 }
-
-// fmtFecha se usa en otras pantallas; aquí queda referenciado para el linter.
-void fmtFecha;
