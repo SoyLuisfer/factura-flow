@@ -63,11 +63,11 @@ export const datosMaestrosQuery = queryOptions({
     if (!politica.data) throw new Error("No hay política vigente");
     return {
       politica: politica.data,
-      tiposCambio: tiposCambio.data,
-      proveedores: proveedores.data,
-      contratos: contratos.data,
-      cuentas: cuentas.data,
-      pagosPrevios: pagosPrevios.data,
+      tiposCambio: tiposCambio.data ?? [],
+      proveedores: proveedores.data ?? [],
+      contratos: contratos.data ?? [],
+      cuentas: cuentas.data ?? [],
+      pagosPrevios: pagosPrevios.data ?? [],
     };
   },
 });
