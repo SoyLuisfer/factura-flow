@@ -83,7 +83,7 @@ function Reglas() {
       };
       const { error: e1 } = await supabase.from("politicas").update({ vigente: false }).eq("id", vigente.id);
       if (e1) throw e1;
-      const { error: e2 } = await supabase.from("politicas").insert({ version: nuevaVersion, vigente: true, creada_por: creador, parametros });
+      const { error: e2 } = await supabase.from("politicas").insert({ version: nuevaVersion, vigente: true, creada_por: creador, parametros: parametros as unknown as import("@/integrations/supabase/types").Json });
       if (e2) throw e2;
       const { error: e3 } = await supabase.from("registro_eventos").insert({
         evento: "politica_modificada",
@@ -130,7 +130,7 @@ function Reglas() {
         const nueva = evaluarFactura(
           {
             id: f.id, codigo: f.codigo, canal: f.canal, tipo_documento: f.tipo_documento, emisor: f.emisor,
-            receptor: f.receptor, numero: f.numero, fecha_emision: f.fecha_emision, fecha_vencimiento: f.fecha_vencimiento,
+            receptor: f.receptor, numero: f.numero, fecha_emision: f.fecha_emision, fecha_vencimiento: f.fecha_vencimiento ?? undefined,
             descripcion: f.descripcion, monto: f.monto, moneda: f.moneda, pago_banco: f.pago_banco, pago_cuenta: f.pago_cuenta,
             confianza_extraccion: f.confianza_extraccion, fecha_recepcion: f.fecha_recepcion ?? new Date().toISOString().slice(0, 10),
           },
