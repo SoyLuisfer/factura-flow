@@ -215,8 +215,8 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
       : null;
 
   async function aprobar() {
-    if (!usuario) return toast.error("Elige quién aprueba");
-    if (!comentario.trim()) return toast.error("El comentario es obligatorio");
+    if (!usuario) return void toast.error("Elige quién aprueba");
+    if (!comentario.trim()) return void toast.error("El comentario es obligatorio");
     setGuardando(true);
     try {
       const ajuste: Record<string, unknown> = {};
@@ -234,7 +234,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
           comentario_aprobacion: comentario.trim(),
           fecha_programada_pago: viernesPago(factura.fecha_recepcion ?? new Date().toISOString().slice(0, 10)),
           cuenta_pago: falloR7 ? cuentaElegida : decision.cuenta_pago,
-          ajuste: Object.keys(ajuste).length > 0 ? ajuste : null,
+          ajuste: Object.keys(ajuste).length > 0 ? (ajuste as unknown as import("@/integrations/supabase/types").Json) : null,
         })
         .eq("id", decision.id);
       if (error) throw error;
@@ -256,8 +256,8 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
   }
 
   async function rechazar() {
-    if (!usuario) return toast.error("Elige quién rechaza");
-    if (!comentario.trim()) return toast.error("El comentario es obligatorio");
+    if (!usuario) return void toast.error("Elige quién rechaza");
+    if (!comentario.trim()) return void toast.error("El comentario es obligatorio");
     setGuardando(true);
     try {
       const { error } = await supabase

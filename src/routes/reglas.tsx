@@ -129,7 +129,7 @@ function Reglas() {
         if (!f) continue;
         const nueva = evaluarFactura(
           {
-            id: f.id, codigo: f.codigo, canal: f.canal, tipo_documento: f.tipo_documento, emisor: f.emisor,
+            id: f.id, codigo: f.codigo ?? undefined, canal: f.canal, tipo_documento: f.tipo_documento, emisor: f.emisor,
             receptor: f.receptor, numero: f.numero, fecha_emision: f.fecha_emision, fecha_vencimiento: f.fecha_vencimiento ?? undefined,
             descripcion: f.descripcion, monto: f.monto, moneda: f.moneda, pago_banco: f.pago_banco, pago_cuenta: f.pago_cuenta,
             confianza_extraccion: f.confianza_extraccion, fecha_recepcion: f.fecha_recepcion ?? new Date().toISOString().slice(0, 10),

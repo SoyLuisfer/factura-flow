@@ -62,7 +62,7 @@ function formDesde(p: Proveedor | null, contrato: Contrato | null, siguienteId: 
     nombre: p?.nombre ?? "",
     pais: p?.pais ?? "",
     tipo: p?.tipo ?? "proveedor",
-    categoria: p?.categoria ?? CATEGORIAS[0],
+    categoria: p?.categoria ?? "Contratistas",
     moneda_factura: p?.moneda_factura ?? "USD",
     cuenta_pago: p?.cuenta_pago ?? "BANK-USD",
     permite_conversion: p?.permite_conversion ?? false,
@@ -99,7 +99,7 @@ function Proveedores() {
 
   async function guardar() {
     if (!form) return;
-    if (!form.nombre.trim()) return toast.error("El nombre es obligatorio");
+    if (!form.nombre.trim()) return void toast.error("El nombre es obligatorio");
     setGuardando(true);
     try {
       const fila = {
