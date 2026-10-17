@@ -15,8 +15,8 @@ export interface Control {
 }
 
 export interface FacturaEntrada {
-  id?: string;
-  codigo?: string;
+  id?: string | undefined;
+  codigo?: string | undefined;
   canal?: string | null;
   tipo_documento: string | null;
   emisor: string | null;
