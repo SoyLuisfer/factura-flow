@@ -73,7 +73,7 @@ export const decisionesQuery = queryOptions({
     await seedDemo();
     const { data, error } = await supabase
       .from("decisiones")
-      .select("*, factura:facturas(*), proveedor:proveedores(*)")
+      .select("*, factura:facturas!decisiones_factura_id_fkey(*), proveedor:proveedores(*)")
       .order("decidido_en", { ascending: false });
     if (error) throw error;
     return (data ?? []) as unknown as DecisionConRelaciones[];
