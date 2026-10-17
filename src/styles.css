@@ -19,8 +19,8 @@
  */
 
 @theme inline {
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans: var(--fuente-sans);
+  --font-mono: var(--fuente-mono);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -65,8 +65,8 @@
 
 :root {
   --radius: 0.5rem;
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --fuente-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --fuente-mono: "IBM Plex Mono", ui-monospace, monospace;
   --background: oklch(0.975 0.008 85);
   --foreground: oklch(0.22 0.03 160);
   --card: oklch(0.99 0.005 85);
