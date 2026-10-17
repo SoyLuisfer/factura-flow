@@ -175,12 +175,10 @@ function diaCorto(fechaIso: string): string {
 export function viernesPago(fechaRecepcion: string): string {
   const d = parseFecha(fechaRecepcion);
   const dow = d.getUTCDay();
-  let delta = (5 - dow + 7) % 7;
-  if (dow === 1 || dow === 2) {
-    // mismo viernes
-  } else {
-    delta = delta === 0 ? 7 : delta + 7;
-  }
+  let delta = (5 - dow + 7) % 7; // días hasta el viernes de esta semana
+  // Miércoles a sábado: el viernes de esta semana ya pasó o es hoy → semana siguiente.
+  // Domingo: el viernes próximo ya cae en la semana siguiente.
+  if (dow >= 3) delta += 7;
   const pago = new Date(d);
   pago.setUTCDate(pago.getUTCDate() + delta);
   return iso(pago);

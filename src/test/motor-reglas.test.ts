@@ -90,7 +90,10 @@ describe("evaluarFactura", () => {
   });
 
   it("NO_EVALUABLE sin fallas lleva a ESCALAR, nunca a PAGAR", () => {
-    const d = evaluarFactura({ ...facturaOk, numero: null }, ctxBase);
+    // Moneda sin tipo de cambio: R8/R9/R10 quedan NO_EVALUABLE sin ninguna FALLA.
+    const d = evaluarFactura({ ...facturaOk, moneda: "EUR" }, ctxBase);
     expect(d.decision).toBe("ESCALAR");
+    expect(d.controles.some((c) => c.resultado === "NO_EVALUABLE")).toBe(true);
+    expect(d.controles.some((c) => c.resultado === "FALLA")).toBe(false);
   });
 });
