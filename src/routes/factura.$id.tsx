@@ -359,7 +359,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={aprobar} disabled={guardando} className="bg-decision-pagar text-decision-pagar-foreground hover:opacity-90">
+          <Button onClick={aprobar} disabled={guardando} className="bg-primary text-primary-foreground hover:bg-primary-hover">
             Aprobar pago
           </Button>
           <Button onClick={rechazar} disabled={guardando} className="bg-decision-frenar text-decision-frenar-foreground hover:opacity-90">
