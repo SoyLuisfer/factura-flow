@@ -220,9 +220,9 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
     setGuardando(true);
     try {
       const ajuste: Record<string, unknown> = {};
-      if (falloR6) ajuste.monto = opcionR6 === "contrato" ? "ajustado_al_contrato" : "monto_facturado";
+      if (falloR6) ajuste["monto"] = opcionR6 === "contrato" ? "ajustado_al_contrato" : "monto_facturado";
       if (falloR7) {
-        ajuste.conversion = { cuenta_pago: cuentaElegida, tipo_cambio: tc, monto_final: montoConvertido, moneda_final: cuentaDest?.moneda };
+        ajuste["conversion"] = { cuenta_pago: cuentaElegida, tipo_cambio: tc, monto_final: montoConvertido, moneda_final: cuentaDest?.moneda };
       }
       const { error } = await supabase
         .from("decisiones")
