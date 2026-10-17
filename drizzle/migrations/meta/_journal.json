@@ -36,6 +36,20 @@
       "when": 1792273071940,
       "tag": "0004_reinicio_con_permiso_registro",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792273625307,
+      "tag": "0005_politicas_storage_facturas",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792274117052,
+      "tag": "0006_evento_corregida",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, AlertTriangle, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,10 +10,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, facturaDetalleQuery, USUARIOS_DEMO, type Decision, type Factura } from "@/lib/datos";
+import { construirContexto } from "@/lib/contexto";
 import { ESTILO_DECISION, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto } from "@/lib/formato";
-import { viernesPago, type Control, type ResultadoControl } from "@/lib/motorReglas";
+import { evaluarFactura, viernesPago, type Control, type FacturaEntrada, type ResultadoControl } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/factura/$id")({
   head: () => ({
@@ -69,24 +71,17 @@ function DetalleFactura() {
             </p>
           </div>
           <div className="p-4">
-            {factura.archivo_url ? (
-              factura.archivo_url.toLowerCase().endsWith(".pdf") ? (
-                <iframe src={factura.archivo_url} title="Documento original" className="h-[32rem] w-full rounded border bg-muted" />
-              ) : (
-                <img src={factura.archivo_url} alt="Documento original" className="max-h-[32rem] w-full rounded border object-contain" />
-              )
-            ) : (
-              <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-muted p-4 font-mono text-xs leading-relaxed">
-                {factura.texto_original ?? "Sin contenido del documento."}
-              </pre>
-            )}
+            <VisorDocumento factura={factura} />
           </div>
         </div>
 
         {/* Derecha: datos + decisión */}
         <div className="space-y-6">
           <div className="rounded-lg border bg-card p-4">
-            <h2 className="font-medium">Datos extraídos</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium">Datos extraídos</h2>
+              <CorreccionDialog factura={factura} />
+            </div>
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <Campo etiqueta="Proveedor (emisor)" valor={factura.emisor} />
               <Campo etiqueta="Receptor" valor={factura.receptor} />
@@ -368,5 +363,214 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
         </div>
       </div>
     </div>
+  );
+}
+
+/** Muestra el documento original: PDF/imagen desde el almacenamiento (URL firmada), el texto del chat, o un aviso si es un caso de prueba. */
+function VisorDocumento({ factura }: { factura: Factura }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!factura.archivo_url) return;
+    let vivo = true;
+    supabase.storage
+      .from("facturas")
+      .createSignedUrl(factura.archivo_url, 3600)
+      .then(({ data }) => {
+        if (vivo && data?.signedUrl) setUrl(data.signedUrl);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [factura.archivo_url]);
+
+  if (factura.archivo_url) {
+    if (!url) {
+      return <div className="flex h-[32rem] items-center justify-center text-sm text-muted-foreground">Cargando documento…</div>;
+    }
+    const esPdf = (factura.nombre_archivo ?? factura.archivo_url).toLowerCase().endsWith(".pdf");
+    return esPdf ? (
+      <iframe src={url} title="Documento original" className="h-[32rem] w-full rounded border bg-muted" />
+    ) : (
+      <img src={url} alt="Documento original" className="max-h-[32rem] w-full rounded border object-contain" />
+    );
+  }
+  if (factura.texto_original) {
+    return (
+      <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-muted p-4 font-mono text-xs leading-relaxed">
+        {factura.texto_original}
+      </pre>
+    );
+  }
+  return <p className="rounded bg-muted p-4 text-sm text-muted-foreground">Caso de prueba cargado con datos ya extraídos.</p>;
+}
+
+const CAMPOS_CORREGIBLES = [
+  { clave: "emisor", etiqueta: "Proveedor (emisor)" },
+  { clave: "receptor", etiqueta: "Receptor" },
+  { clave: "numero", etiqueta: "Número" },
+  { clave: "tipo_documento", etiqueta: "Tipo de documento" },
+  { clave: "fecha_emision", etiqueta: "Emisión (AAAA-MM-DD)" },
+  { clave: "fecha_vencimiento", etiqueta: "Vencimiento (AAAA-MM-DD)" },
+  { clave: "monto", etiqueta: "Monto" },
+  { clave: "moneda", etiqueta: "Moneda (USD, GTQ, COP, MXN)" },
+  { clave: "descripcion", etiqueta: "Descripción" },
+  { clave: "pago_banco", etiqueta: "Banco de pago" },
+  { clave: "pago_cuenta", etiqueta: "Cuenta de pago" },
+] as const;
+
+type ClaveCampo = (typeof CAMPOS_CORREGIBLES)[number]["clave"];
+
+/** Corrige los datos extraídos por la IA y re-evalúa con el motor. Requiere usuario y registra qué cambió. */
+function CorreccionDialog({ factura }: { factura: Factura }) {
+  const qc = useQueryClient();
+  const [abierto, setAbierto] = useState(false);
+  const [usuario, setUsuario] = useState("");
+  const [valores, setValores] = useState<Record<ClaveCampo, string>>(() => valoresIniciales(factura));
+  const [guardando, setGuardando] = useState(false);
+
+  function valoresIniciales(f: Factura): Record<ClaveCampo, string> {
+    return {
+      emisor: f.emisor ?? "",
+      receptor: f.receptor ?? "",
+      numero: f.numero ?? "",
+      tipo_documento: f.tipo_documento ?? "",
+      fecha_emision: f.fecha_emision ?? "",
+      fecha_vencimiento: f.fecha_vencimiento ?? "",
+      monto: f.monto != null ? String(f.monto) : "",
+      moneda: f.moneda ?? "",
+      descripcion: f.descripcion ?? "",
+      pago_banco: f.pago_banco ?? "",
+      pago_cuenta: f.pago_cuenta ?? "",
+    };
+  }
+
+  async function guardar() {
+    if (!usuario) return void toast.error("Elige quién corrige");
+    const iniciales = valoresIniciales(factura);
+    const cambios = CAMPOS_CORREGIBLES.filter((c) => valores[c.clave].trim() !== iniciales[c.clave].trim()).map((c) => c.etiqueta);
+    if (cambios.length === 0) return void toast.error("No cambiaste ningún dato");
+
+    setGuardando(true);
+    try {
+      const monto = valores.monto.trim() === "" ? null : Number(valores.monto);
+      if (valores.monto.trim() !== "" && !Number.isFinite(monto)) throw new Error("El monto debe ser numérico");
+      const actualizacion = {
+        emisor: valores.emisor.trim() || null,
+        receptor: valores.receptor.trim() || null,
+        numero: valores.numero.trim() || null,
+        tipo_documento: valores.tipo_documento.trim() || null,
+        fecha_emision: valores.fecha_emision.trim() || null,
+        fecha_vencimiento: valores.fecha_vencimiento.trim() || null,
+        monto,
+        moneda: valores.moneda.trim() || null,
+        descripcion: valores.descripcion.trim() || null,
+        pago_banco: valores.pago_banco.trim() || null,
+        pago_cuenta: valores.pago_cuenta.trim() || null,
+      };
+      const { error: errU } = await supabase.from("facturas").update(actualizacion).eq("id", factura.id);
+      if (errU) throw errU;
+
+      // Re-evaluar con el motor, excluyendo esta factura del historial (no es duplicado de sí misma)
+      const ctx = await construirContexto();
+      ctx.facturasRecibidas = ctx.facturasRecibidas.filter((f) => f.id !== factura.id);
+      const entrada: FacturaEntrada = {
+        id: factura.id,
+        canal: factura.canal,
+        tipo_documento: actualizacion.tipo_documento,
+        emisor: actualizacion.emisor,
+        receptor: actualizacion.receptor,
+        numero: actualizacion.numero,
+        fecha_emision: actualizacion.fecha_emision,
+        fecha_vencimiento: actualizacion.fecha_vencimiento,
+        descripcion: actualizacion.descripcion,
+        monto: actualizacion.monto,
+        moneda: actualizacion.moneda,
+        pago_banco: actualizacion.pago_banco,
+        pago_cuenta: actualizacion.pago_cuenta,
+        confianza_extraccion: 1, // corregida por humano
+        fecha_recepcion: factura.fecha_recepcion ?? new Date().toISOString(),
+      };
+      const d = evaluarFactura(entrada, ctx);
+      const ahora = new Date().toISOString();
+      const { error: errD } = await supabase.from("decisiones").insert({
+        factura_id: factura.id,
+        decision: d.decision,
+        estado: d.estado,
+        motivo: d.motivo,
+        controles: d.controles as unknown as import("@/integrations/supabase/types").Json,
+        monto_usd: d.monto_usd,
+        proveedor_id: d.proveedor_id,
+        categoria: d.categoria,
+        cuenta_pago: d.cuenta_pago,
+        fecha_programada_pago: d.fecha_programada_pago,
+        escalar_a: d.escalar_a,
+        factura_relacionada_id: d.factura_relacionada_id,
+        politica_version: d.politica_version,
+        decidido_por: d.decidido_por,
+        decidido_en: ahora,
+      });
+      if (errD) throw errD;
+      const { error: errE } = await supabase.from("registro_eventos").insert([
+        { factura_id: factura.id, evento: "corregida", actor: usuario, detalle: `Corrigió los datos extraídos: ${cambios.join(", ")}`, fecha_hora: ahora },
+        { factura_id: factura.id, evento: "decidida", actor: d.decidido_por, detalle: `Re-evaluada tras corrección: ${d.decision} — ${d.motivo}`, fecha_hora: ahora },
+      ]);
+      if (errE) throw errE;
+
+      await qc.invalidateQueries();
+      setAbierto(false);
+      toast.success(`Datos corregidos. Nueva decisión: ${d.decision}`);
+    } catch (e) {
+      toast.error("No se pudo corregir: " + (e as Error).message);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setAbierto(true)}>
+        <Pencil className="mr-1 h-3 w-3" /> Corregir datos extraídos
+      </Button>
+      <Dialog open={abierto} onOpenChange={setAbierto}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Corregir datos extraídos</DialogTitle>
+            <DialogDescription>
+              La corrección queda registrada con tu nombre y los campos cambiados, y la factura se re-evalúa con el motor de reglas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>¿Quién corrige?</Label>
+              <Select value={usuario} onValueChange={setUsuario}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Elige un usuario" /></SelectTrigger>
+                <SelectContent>
+                  {USUARIOS_DEMO.map((u) => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {CAMPOS_CORREGIBLES.map((c) => (
+                <div key={c.clave} className={c.clave === "descripcion" ? "col-span-2" : ""}>
+                  <Label className="text-xs text-muted-foreground">{c.etiqueta}</Label>
+                  <Input
+                    className="mt-1"
+                    value={valores[c.clave]}
+                    onChange={(e) => setValores((v) => ({ ...v, [c.clave]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAbierto(false)}>Cancelar</Button>
+            <Button onClick={guardar} disabled={guardando}>{guardando ? "Guardando…" : "Guardar y re-evaluar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

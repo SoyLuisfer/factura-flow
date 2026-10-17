@@ -1,0 +1,2 @@
+alter table public.registro_eventos drop constraint registro_eventos_evento_check;
+alter table public.registro_eventos add constraint registro_eventos_evento_check check (evento = any (array['recibida','extraida','decidida','aprobada','rechazada','corregida','politica_modificada','proveedor_modificado']));
