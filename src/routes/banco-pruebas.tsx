@@ -136,6 +136,10 @@ function BancoPruebas() {
       // Idempotente: primero deja la base como "Reiniciar datos demo"
       await reiniciarDemo();
 
+      // Contexto con el historial recién reiniciado (vacío), ANTES de insertar,
+      // para que las facturas del lote no se detecten como duplicados de sí mismas.
+      const ctx = await construirContexto();
+
       // 1. Insertar las facturas
       const facturasInsert = CASOS_PRUEBA.map((c) => ({
         codigo: c.codigo,
@@ -159,8 +163,7 @@ function BancoPruebas() {
       if (errF) throw errF;
       const idPorCodigo = new Map(facturas.map((f) => [f.codigo, f.id]));
 
-      // 2. Procesar con el motor (contexto con historial —recién reiniciado— y los ids reales para enlazar duplicados)
-      const ctx = await construirContexto();
+      // 2. Procesar con el motor (con los ids reales para enlazar duplicados)
       const casosConId = CASOS_PRUEBA.map((c) => ({ ...c, id: idPorCodigo.get(c.codigo) }));
       const res = procesarLote(casosConId, ctx);
 
