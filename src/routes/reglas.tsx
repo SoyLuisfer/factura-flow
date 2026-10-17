@@ -119,7 +119,7 @@ function Reglas() {
         pagosPrevios: maestros.pagosPrevios,
         decisionesPrevias: [],
         facturasRecibidas: (facturas ?? []).map((f) => ({
-          id: f.id, codigo: f.codigo, emisor: f.emisor, numero: f.numero,
+          id: f.id, codigo: f.codigo ?? undefined, emisor: f.emisor, numero: f.numero,
           fecha_recepcion: f.fecha_recepcion ?? "", canal: f.canal,
         })),
       };
