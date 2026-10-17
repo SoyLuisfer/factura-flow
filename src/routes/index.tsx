@@ -26,7 +26,6 @@ export const Route = createFileRoute("/")({
   component: Tablero,
 });
 
-type DecisionConRelaciones = Decision & { factura: Factura | null; proveedor: Proveedor | null };
 
 function Tablero() {
   const { data: empresa } = useSuspenseQuery(empresaQuery);

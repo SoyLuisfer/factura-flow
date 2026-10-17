@@ -139,11 +139,11 @@ function Reglas() {
         const { error } = await supabase
           .from("decisiones")
           .update({
-            decision: nueva.decision, estado: nueva.estado, motivo: nueva.motivo, controles: nueva.controles,
+            decision: nueva.decision, estado: nueva.estado, motivo: nueva.motivo, controles: nueva.controles as unknown as import("@/integrations/supabase/types").Json,
             monto_usd: nueva.monto_usd, proveedor_id: nueva.proveedor_id, categoria: nueva.categoria,
             cuenta_pago: nueva.cuenta_pago, fecha_programada_pago: nueva.fecha_programada_pago,
             escalar_a: nueva.escalar_a, factura_relacionada_id: nueva.factura_relacionada_id,
-            politica_version: nueva.politicaVersion, decidido_por: nueva.decidido_por,
+            politica_version: nueva.politica_version, decidido_por: nueva.decidido_por,
           })
           .eq("id", d.id);
         if (error) throw error;
