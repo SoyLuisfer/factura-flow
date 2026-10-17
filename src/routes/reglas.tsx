@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, decisionesQuery, facturasQuery, politicasQuery, USUARIOS_DEMO } from "@/lib/datos";
+import { construirContexto } from "@/lib/contexto";
 import { fmtFechaHora, fmtMonto } from "@/lib/formato";
 import { evaluarFactura, type ParametrosPolitica } from "@/lib/motorReglas";
 
@@ -109,24 +110,18 @@ function Reglas() {
       ]);
       if (e1) throw e1;
       if (e2) throw e2;
-      const ctx = {
-        politicaVersion: vigente.version,
-        parametros: p,
-        tiposCambio: maestros.tiposCambio,
-        proveedores: maestros.proveedores,
-        contratos: maestros.contratos,
-        cuentas: maestros.cuentas,
-        pagosPrevios: maestros.pagosPrevios,
-        decisionesPrevias: [],
-        facturasRecibidas: (facturas ?? []).map((f) => ({
-          id: f.id, codigo: f.codigo ?? undefined, emisor: f.emisor, numero: f.numero,
-          fecha_recepcion: f.fecha_recepcion ?? "", canal: f.canal,
-        })),
-      };
+      // Contexto con TODO el historial de la base (duplicados, presupuesto y saldo reales)
+      const ctxBase = await construirContexto();
       let actualizadas = 0;
       for (const d of pendientes ?? []) {
         const f = (facturas ?? []).find((x) => x.id === d.factura_id);
         if (!f) continue;
+        // La factura re-evaluada no debe contarse como su propio duplicado ni consumir su propio presupuesto
+        const ctx = {
+          ...ctxBase,
+          facturasRecibidas: ctxBase.facturasRecibidas.filter((fr) => fr.id !== f.id),
+          decisionesPrevias: ctxBase.decisionesPrevias,
+        };
         const nueva = evaluarFactura(
           {
             id: f.id, codigo: f.codigo ?? undefined, canal: f.canal, tipo_documento: f.tipo_documento, emisor: f.emisor,

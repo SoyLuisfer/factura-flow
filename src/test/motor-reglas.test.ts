@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluarFactura, normalizar, primerViernesMesSiguiente, viernesPago, type ContextoMotor, type FacturaEntrada, type ParametrosPolitica } from "@/lib/motorReglas";
+import { evaluarFactura, normalizar, primerViernesMesSiguiente, procesarLote, viernesPago, type ContextoMotor, type FacturaEntrada, type ParametrosPolitica } from "@/lib/motorReglas";
 
 const parametros: ParametrosPolitica = {
   umbral_confianza_extraccion: 0.7,
@@ -95,5 +95,37 @@ describe("evaluarFactura", () => {
     expect(d.decision).toBe("ESCALAR");
     expect(d.controles.some((c) => c.resultado === "NO_EVALUABLE")).toBe(true);
     expect(d.controles.some((c) => c.resultado === "FALLA")).toBe(false);
+  });
+});
+
+describe("doble carga (regresión)", () => {
+  it("la segunda pasada frena por duplicado todo lo que la primera aprobó, escaló o postergó", () => {
+    const primera = procesarLote([facturaOk], ctxBase);
+    expect(primera[0]!.decision.decision).toBe("PAGAR");
+
+    const ctx2: ContextoMotor = {
+      ...ctxBase,
+      decisionesPrevias: primera.map((r) => r.decision),
+      facturasRecibidas: primera.map((r) => ({
+        id: r.factura.id, codigo: r.factura.codigo, emisor: r.factura.emisor, numero: r.factura.numero,
+        fecha_recepcion: r.factura.fecha_recepcion, canal: r.factura.canal, decision: r.decision.decision,
+      })),
+    };
+    const segunda = procesarLote([facturaOk], ctx2);
+    expect(segunda[0]!.decision.decision).toBe("FRENAR");
+    expect(segunda[0]!.decision.controles.find((c) => c.regla === "R3")?.resultado).toBe("FALLA");
+  });
+
+  it("el presupuesto del periodo cuenta las decisiones PAGAR ya guardadas", () => {
+    const ctxConConsumo: ContextoMotor = {
+      ...ctxBase,
+      decisionesPrevias: [
+        { decision: "PAGAR", controles: [], motivo: "", monto_usd: 24000, proveedor_id: "V001", categoria: "Contratistas", cuenta_pago: "BANK-USD", fecha_programada_pago: "2026-10-23", escalar_a: null, factura_relacionada_id: null, politica_version: "v1", estado: "final", decidido_por: "Agente (automático)", monto_cuenta: 24000, moneda_cuenta: "USD", periodo: "2026-10" },
+      ],
+    };
+    // Disponible: 25000 - 24000 = 1000 < 2800; 2800 ≤ 5000 → POSTERGAR
+    const d = evaluarFactura(facturaOk, ctxConConsumo);
+    expect(d.decision).toBe("POSTERGAR");
+    expect(d.controles.find((c) => c.regla === "R9")?.resultado).toBe("FALLA");
   });
 });

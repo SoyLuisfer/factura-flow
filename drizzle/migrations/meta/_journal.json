@@ -8,6 +8,20 @@
       "when": 1792264369071,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792272698616,
+      "tag": "0001_bloquear_pago_duplicado",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792272904590,
+      "tag": "0002_reiniciar_demo_con_where",
+      "breakpoints": true
     }
   ]
 }
