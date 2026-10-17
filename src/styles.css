@@ -61,6 +61,14 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-decision-pagar: var(--decision-pagar);
+  --color-decision-pagar-foreground: var(--decision-pagar-foreground);
+  --color-decision-frenar: var(--decision-frenar);
+  --color-decision-frenar-foreground: var(--decision-frenar-foreground);
+  --color-decision-escalar: var(--decision-escalar);
+  --color-decision-escalar-foreground: var(--decision-escalar-foreground);
+  --color-decision-postergar: var(--decision-postergar);
+  --color-decision-postergar-foreground: var(--decision-postergar-foreground);
 }
 
 :root {
@@ -99,6 +107,14 @@
   --sidebar-accent-foreground: oklch(0.98 0.01 85);
   --sidebar-border: oklch(0.32 0.03 160);
   --sidebar-ring: oklch(0.78 0.12 85);
+  --decision-pagar: oklch(0.5 0.11 155);
+  --decision-pagar-foreground: oklch(0.98 0.01 85);
+  --decision-frenar: oklch(0.55 0.19 27);
+  --decision-frenar-foreground: oklch(0.98 0.01 85);
+  --decision-escalar: oklch(0.68 0.14 75);
+  --decision-escalar-foreground: oklch(0.25 0.03 75);
+  --decision-postergar: oklch(0.55 0.12 240);
+  --decision-postergar-foreground: oklch(0.98 0.01 85);
 }
 
 .dark {
