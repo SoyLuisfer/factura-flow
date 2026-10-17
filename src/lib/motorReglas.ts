@@ -87,13 +87,13 @@ export interface PagoPrevioLike {
 }
 
 export interface FacturaRecibidaLike {
-  id?: string;
-  codigo?: string;
+  id?: string | undefined;
+  codigo?: string | undefined;
   emisor: string | null;
   numero: string | null;
   fecha_recepcion: string;
-  canal?: string | null;
-  decision?: TipoDecision;
+  canal?: string | null | undefined;
+  decision?: TipoDecision | undefined;
 }
 
 export interface ContextoMotor {
@@ -156,7 +156,7 @@ function redondear2(n: number): number {
 }
 
 function parseFecha(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
+  const [y = 1970, m = 1, d = 1] = s.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d));
 }
 
