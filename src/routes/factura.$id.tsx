@@ -232,7 +232,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
           aprobador: usuario,
           aprobado_en: new Date().toISOString(),
           comentario_aprobacion: comentario.trim(),
-          fecha_programada_pago: viernesPago(factura.fecha_recepcion ?? new Date().toISOString().slice(0, 10)),
+          fecha_programada_pago: viernesPago((factura.fecha_recepcion ?? new Date().toISOString()).slice(0, 10)),
           cuenta_pago: falloR7 ? cuentaElegida : decision.cuenta_pago,
           ajuste: Object.keys(ajuste).length > 0 ? (ajuste as unknown as import("@/integrations/supabase/types").Json) : null,
         })
