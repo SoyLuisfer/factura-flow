@@ -166,6 +166,12 @@ function iso(d: Date): string {
 
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
+/** "19/10/2026" — formato de fecha para los textos de motivo y detalle. */
+function fmtFechaTexto(s: string): string {
+  const [y = 1970, m = 1, d = 1] = s.slice(0, 10).split("-").map(Number);
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+}
+
 function diaCorto(fechaIso: string): string {
   const d = parseFecha(fechaIso);
   return `${DIAS[d.getUTCDay()]} ${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
@@ -261,10 +267,10 @@ export function evaluarFactura(f: FacturaEntrada, ctx: ContextoMotor): DecisionS
       (fr) => fr.numero === f.numero && fr.emisor && emisorNorm && normalizar(fr.emisor) === emisorNorm && fr.decision !== "FRENAR",
     );
     if (pagoPrevio) {
-      agregar("R3", "No es duplicado", "FALLA", `La factura ${f.numero} ya se pagó el ${pagoPrevio.fecha_pago} (pago ${pagoPrevio.id}, USD ${fmt(pagoPrevio.monto_usd)}).`, "FRENAR");
+      agregar("R3", "No es duplicado", "FALLA", `La factura ${f.numero} ya se pagó el ${fmtFechaTexto(pagoPrevio.fecha_pago)} (pago ${pagoPrevio.id}, USD ${fmt(pagoPrevio.monto_usd)}).`, "FRENAR");
     } else if (recibida) {
       facturaRelacionada = recibida.id ?? null;
-      agregar("R3", "No es duplicado", "FALLA", `La factura ${f.numero} ya fue recibida el ${recibida.fecha_recepcion} por ${recibida.canal ?? "otro canal"} (${recibida.codigo ?? "sin código"}, decisión: ${recibida.decision}).`, "FRENAR");
+      agregar("R3", "No es duplicado", "FALLA", `La factura ${f.numero} ya fue recibida el ${fmtFechaTexto(recibida.fecha_recepcion)} por ${recibida.canal ?? "otro canal"} (${recibida.codigo ?? "sin código"}, decisión: ${recibida.decision}).`, "FRENAR");
     } else {
       agregar("R3", "No es duplicado", "OK", `No hay pagos previos ni recepciones de la factura ${f.numero}.`, null);
     }

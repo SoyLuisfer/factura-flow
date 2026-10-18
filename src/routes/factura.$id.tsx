@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, AlertTriangle, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { PanelControles } from "@/components/panel-controles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,8 +15,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, facturaDetalleQuery, USUARIOS_DEMO, type Decision, type Factura } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
-import { ESTILO_DECISION, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto } from "@/lib/formato";
-import { evaluarFactura, viernesPago, type Control, type FacturaEntrada, type ResultadoControl } from "@/lib/motorReglas";
+import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto } from "@/lib/formato";
+import { evaluarFactura, viernesPago, type Control, type FacturaEntrada } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/factura/$id")({
   head: () => ({
@@ -34,25 +35,11 @@ export const Route = createFileRoute("/factura/$id")({
   component: DetalleFactura,
 });
 
-const ICONO_CONTROL: Record<ResultadoControl, React.ReactNode> = {
-  OK: <CheckCircle2 className="h-4 w-4 text-decision-pagar" />,
-  FALLA: <XCircle className="h-4 w-4 text-decision-frenar" />,
-  NO_APLICA: <MinusCircle className="h-4 w-4 text-control-no-aplica" />,
-  NO_EVALUABLE: <AlertTriangle className="h-4 w-4 text-decision-escalar" />,
-};
-
-const ETIQUETA_CONTROL: Record<ResultadoControl, string> = {
-  OK: "OK",
-  FALLA: "FALLA",
-  NO_APLICA: "NO APLICA",
-  NO_EVALUABLE: "NO EVALUABLE",
-};
-
 function DetalleFactura() {
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(facturaDetalleQuery(id));
   const { data: maestros } = useSuspenseQuery(datosMaestrosQuery);
-  const { factura, decisiones, eventos } = data;
+  const { factura, decisiones, eventos, relacionada } = data;
   const decision = decisiones[0] ?? null;
 
   return (
@@ -102,7 +89,7 @@ function DetalleFactura() {
           {decision && (
             <div className="rounded-lg border bg-card p-4">
               <div className="flex items-center justify-between gap-2">
-                <Badge className={`${ESTILO_DECISION[decision.decision as keyof typeof ESTILO_DECISION]} px-3 py-1 text-base`}>{decision.decision}</Badge>
+                <Badge className={`${ESTILO_DECISION[decision.decision as keyof typeof ESTILO_DECISION]} px-3 py-1 text-base`}>{etiquetaDecision(decision.decision, decision.estado)}</Badge>
                 <span className="text-xs text-muted-foreground">Política {decision.politica_version}</span>
               </div>
               <p className="mt-3 text-sm">{decision.motivo}</p>
@@ -119,21 +106,11 @@ function DetalleFactura() {
                 </div>
               )}
 
-              <h3 className="mt-5 font-medium">¿Por qué? — Controles R0–R10</h3>
-              <ul className="mt-2 space-y-2">
-                {(decision.controles as unknown as Control[]).map((c) => (
-                  <li key={c.regla} className="flex gap-2 text-sm">
-                    <span className="mt-0.5 shrink-0">{ICONO_CONTROL[c.resultado]}</span>
-                    <div>
-                      <span className="font-medium">
-                        {c.regla} {c.control}
-                      </span>{" "}
-                      <span className="text-xs text-muted-foreground">({ETIQUETA_CONTROL[c.resultado]})</span>
-                      <p className="text-xs text-muted-foreground">{c.detalle}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="mt-5 font-medium">¿Por qué?</h3>
+              <div className="mt-2">
+                <PanelControles controles={decision.controles as unknown as Control[]} />
+              </div>
+              <EnlaceDuplicado decision={decision} relacionada={relacionada} />
             </div>
           )}
 
@@ -154,7 +131,11 @@ function DetalleFactura() {
                     <div className="text-xs text-muted-foreground">
                       {fmtFechaHora(e.fecha_hora)} · {e.actor}
                     </div>
-                    {e.detalle && <div className="text-xs text-muted-foreground">{e.detalle}</div>}
+                    {e.detalle && (
+                      <div className="text-xs text-muted-foreground">
+                        {e.evento === "extraida" ? e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA") : e.detalle}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -164,6 +145,27 @@ function DetalleFactura() {
       </div>
     </div>
   );
+}
+
+/** Si R3 falló por duplicado: enlace a la factura original, o el ID del pago previo (sin enlace). */
+function EnlaceDuplicado({ decision, relacionada }: { decision: Decision; relacionada: { id: string; codigo: string | null; numero: string | null } | null }) {
+  const controles = decision.controles as unknown as Control[];
+  const r3 = controles.find((c) => c.regla === "R3" && c.resultado === "FALLA");
+  if (!r3) return null;
+  if (decision.factura_relacionada_id && relacionada) {
+    return (
+      <div className="mt-3 text-sm">
+        <Link to="/factura/$id" params={{ id: relacionada.id }} className="text-primary underline underline-offset-2">
+          Ver factura original{relacionada.codigo ? ` (${relacionada.codigo})` : relacionada.numero ? ` (${relacionada.numero})` : ""}
+        </Link>
+      </div>
+    );
+  }
+  const pagoPrevio = /\(pago ([A-Z]+-\d+)/.exec(r3.detalle)?.[1];
+  if (pagoPrevio) {
+    return <p className="mt-3 text-xs text-muted-foreground">Duplicada contra el pago previo {pagoPrevio}.</p>;
+  }
+  return null;
 }
 
 function Campo({ etiqueta, valor, mono }: { etiqueta: string; valor: string | null | undefined; mono?: boolean }) {

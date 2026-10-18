@@ -22,11 +22,11 @@ export function fmtFechaCorta(iso: string | null | undefined): string {
   return `${dias[d.getUTCDay()]} ${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
 }
 
-/** "17/10/2026 13:52" */
+/** "17/10/2026 19:52" — hora de Guatemala (UTC-6). */
 export function fmtFechaHora(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
-  return d.toLocaleString("es-GT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
+  return d.toLocaleString("es-GT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Guatemala" });
 }
 
 /** Clases de insignia por decisión: PAGAR verde, FRENAR rojo, ESCALAR ámbar, POSTERGAR azul. */
@@ -37,9 +37,5 @@ export const ESTILO_DECISION: Record<TipoDecision, string> = {
   POSTERGAR: "bg-decision-postergar text-decision-postergar-foreground",
 };
 
-export const ETIQUETA_DECISION: Record<TipoDecision, string> = {
-  PAGAR: "PAGAR",
-  FRENAR: "FRENAR",
-  ESCALAR: "ESCALAR",
-  POSTERGAR: "POSTERGAR",
-};
+// Las etiquetas de decisión en pantalla viven en src/lib/etiquetas.ts (fuente única).
+export { ETIQUETA_DECISION, etiquetaDecision } from "@/lib/etiquetas";

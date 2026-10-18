@@ -124,7 +124,14 @@ export function facturaDetalleQuery(id: string) {
       if (decisiones.error) throw decisiones.error;
       if (eventos.error) throw eventos.error;
       if (!factura.data) throw new Error("Factura no encontrada");
-      return { factura: factura.data, decisiones: decisiones.data ?? [], eventos: eventos.data ?? [] };
+      // Factura original cuando la decisión más reciente la marcó como duplicado (R3)
+      const relacionadaId = (decisiones.data ?? [])[0]?.factura_relacionada_id ?? null;
+      let relacionada: { id: string; codigo: string | null; numero: string | null } | null = null;
+      if (relacionadaId) {
+        const { data: rel } = await supabase.from("facturas").select("id, codigo, numero").eq("id", relacionadaId).maybeSingle();
+        relacionada = rel;
+      }
+      return { factura: factura.data, decisiones: decisiones.data ?? [], eventos: eventos.data ?? [], relacionada };
     },
   });
 }

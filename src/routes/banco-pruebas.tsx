@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, MinusCircle, AlertCircle, ChevronDown, ChevronRight, Play, DatabaseZap } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, DatabaseZap } from "lucide-react";
+import { PanelControles } from "@/components/panel-controles";
+import { ETIQUETA_DECISION } from "@/lib/etiquetas";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,7 +16,7 @@ import { datosMaestrosQuery, reiniciarDemo } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
 import { supabase } from "@/integrations/supabase/client";
 import { CASOS_PRUEBA } from "@/lib/casosPrueba";
-import { procesarLote, type Control, type ResultadoLote } from "@/lib/motorReglas";
+import { procesarLote, type ResultadoLote, type TipoDecision } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/banco-pruebas")({
   head: () => ({
@@ -28,20 +30,6 @@ export const Route = createFileRoute("/banco-pruebas")({
   loader: ({ context }) => context.queryClient.ensureQueryData(datosMaestrosQuery),
   component: BancoPruebas,
 });
-
-const ICONOS: Record<Control["resultado"], typeof CheckCircle2> = {
-  OK: CheckCircle2,
-  FALLA: XCircle,
-  NO_APLICA: MinusCircle,
-  NO_EVALUABLE: AlertCircle,
-};
-
-const COLORES: Record<Control["resultado"], string> = {
-  OK: "text-decision-pagar",
-  FALLA: "text-decision-frenar",
-  NO_APLICA: "text-control-no-aplica",
-  NO_EVALUABLE: "text-decision-escalar",
-};
 
 const VARIANTES_DECISION: Record<string, "default" | "destructive" | "secondary" | "outline"> = {
   PAGAR: "default",
@@ -322,8 +310,8 @@ function BancoPruebas() {
                         <TableCell className="text-right font-mono text-xs">
                           {caso.monto?.toLocaleString("en-US", { minimumFractionDigits: 2 })} {caso.moneda}
                         </TableCell>
-                        <TableCell><Badge variant={VARIANTES_DECISION[caso.esperado]}>{caso.esperado}</Badge></TableCell>
-                        <TableCell><Badge variant={VARIANTES_DECISION[r.decision.decision]}>{r.decision.decision}</Badge></TableCell>
+                        <TableCell><Badge variant={VARIANTES_DECISION[caso.esperado]}>{ETIQUETA_DECISION[caso.esperado as TipoDecision]}</Badge></TableCell>
+                        <TableCell><Badge variant={VARIANTES_DECISION[r.decision.decision]}>{ETIQUETA_DECISION[r.decision.decision]}</Badge></TableCell>
                         <TableCell>{ok ? <span title="Coincide">✅</span> : <span title="No coincide">❌</span>}</TableCell>
                         <TableCell className="font-mono text-xs">{r.decision.fecha_programada_pago ?? "—"}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{r.decision.motivo}</TableCell>
@@ -331,21 +319,7 @@ function BancoPruebas() {
                       {abierto && (
                         <TableRow>
                           <TableCell colSpan={10} className="bg-muted/40 p-4">
-                            <div className="space-y-2">
-                              {r.decision.controles.map((c) => {
-                                const Icono = ICONOS[c.resultado];
-                                return (
-                                  <div key={c.regla} className="flex items-start gap-2 text-sm">
-                                    <Icono className={`mt-0.5 h-4 w-4 shrink-0 ${COLORES[c.resultado]}`} />
-                                    <div>
-                                      <span className="font-medium">{c.regla} {c.control}</span>
-                                      <span className="ml-2 text-xs text-muted-foreground">({c.resultado}{c.si_falla ? ` → ${c.si_falla}` : ""})</span>
-                                      <div className="text-xs text-muted-foreground">{c.detalle}</div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                            <PanelControles controles={r.decision.controles} />
                           </TableCell>
                         </TableRow>
                       )}
