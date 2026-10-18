@@ -18,6 +18,7 @@ import { construirContexto } from "@/lib/contexto";
 import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto } from "@/lib/formato";
 import { evaluarFactura, viernesPago, type Control, type FacturaEntrada } from "@/lib/motorReglas";
+import { MONEDAS_DISPONIBLES } from "@/lib/extraccion";
 
 export const Route = createFileRoute("/factura/$id")({
   head: () => ({
@@ -429,7 +430,7 @@ const CAMPOS_CORREGIBLES = [
   { clave: "fecha_emision", etiqueta: "Emisión (AAAA-MM-DD)" },
   { clave: "fecha_vencimiento", etiqueta: "Vencimiento (AAAA-MM-DD)" },
   { clave: "monto", etiqueta: "Monto" },
-  { clave: "moneda", etiqueta: "Moneda (USD, GTQ, COP, MXN)" },
+  { clave: "moneda", etiqueta: "Moneda (USD, GTQ)" },
   { clave: "descripcion", etiqueta: "Descripción" },
   { clave: "pago_banco", etiqueta: "Banco de pago" },
   { clave: "pago_cuenta", etiqueta: "Cuenta de pago" },
@@ -572,11 +573,19 @@ function CorreccionDialog({ factura }: { factura: Factura }) {
               {CAMPOS_CORREGIBLES.map((c) => (
                 <div key={c.clave} className={c.clave === "descripcion" ? "col-span-2" : ""}>
                   <Label className="text-xs text-muted-foreground">{c.etiqueta}</Label>
-                  <Input
+                  {c.clave === "moneda" ? (
+                    <Select value={valores.moneda || "sin_moneda"} onValueChange={(moneda) => setValores((v) => ({ ...v, moneda: moneda === "sin_moneda" ? "" : moneda }))}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sin_moneda">Sin identificar</SelectItem>
+                        {MONEDAS_DISPONIBLES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  ) : <Input
                     className="mt-1"
                     value={valores[c.clave]}
                     onChange={(e) => setValores((v) => ({ ...v, [c.clave]: e.target.value }))}
-                  />
+                  />}
                 </div>
               ))}
             </div>

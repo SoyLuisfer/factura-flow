@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
+- Currency choices and extraction normalization share the browser-safe exports in `src/lib/extraccion.ts`; the server validates AI output with that helper. Why: unsupported currencies cannot leak from AI into accepted structured data and the decision engine remains unchanged.
 - Payment decisions come only from the pure deterministic rules engine in `src/lib/motorReglas.ts` (no AI calls); AI only extracts invoice data. Why: hackathon judging requires auditable, non-AI decisions.
 - A DB trigger on `decisiones` rejects PAGAR unless all controles are OK/NO_APLICA or a human approval has approver, timestamp and comment. Why: defense in depth beyond app code.
 - `registro_eventos` is append-only, enforced by trigger; only the `reiniciar_demo()` SQL function may clear it. Why: audit integrity.

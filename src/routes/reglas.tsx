@@ -16,7 +16,7 @@ export const Route = createFileRoute("/reglas")({
   head: () => ({
     meta: [
       { title: "Reglas — Contralor" },
-      { name: "description", content: "Política de pagos versionada de Andes Labs." },
+      { name: "description", content: "Política de pagos versionada de Pollos Hermanos, S. A.." },
       { property: "og:title", content: "Reglas — Contralor" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/reglas")({
 const EXPLICACION_REGLAS: { regla: string; nombre: string; que: string; siFalla: string }[] = [
   { regla: "R0", nombre: "Lectura confiable", que: "La IA solo extrae datos; si la lectura del documento tiene baja confianza, no se puede decidir a ciegas.", siFalla: "Se escala a Finanzas para revisión manual." },
   { regla: "R1", nombre: "Documento válido y completo", que: "La factura debe ser de un tipo válido y traer todos los campos obligatorios.", siFalla: "Se frena: no es un documento pagable." },
-  { regla: "R2", nombre: "Emitida a nombre de la empresa", que: "La factura debe estar emitida a nombre de Andes Labs LLC.", siFalla: "Se frena: podría ser de otra empresa." },
+  { regla: "R2", nombre: "Emitida a nombre de la empresa", que: "La factura debe estar emitida a nombre de Pollos Hermanos, S. A..", siFalla: "Se frena: podría ser de otra empresa." },
   { regla: "R3", nombre: "No es duplicado", que: "La misma factura no debe pagarse dos veces (ni por pago previo ni por otra recepción).", siFalla: "Se frena y se enlaza a la original." },
   { regla: "R4", nombre: "Proveedor registrado y autorizado", que: "El emisor debe estar en el registro, activo y con expediente completo.", siFalla: "Se escala a Contabilidad." },
   { regla: "R5", nombre: "Datos de pago coinciden", que: "La cuenta a la que pide pagar la factura debe ser la registrada del proveedor.", siFalla: "Se escala a Finanzas (posible fraude)." },

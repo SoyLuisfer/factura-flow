@@ -5,7 +5,7 @@ const parametros: ParametrosPolitica = {
   umbral_confianza_extraccion: 0.7,
   campos_obligatorios: ["tipo_documento", "emisor", "receptor", "numero", "fecha_emision", "descripcion", "monto", "moneda"],
   tipos_documento_validos: ["factura", "cuenta de cobro", "invoice"],
-  receptor_valido: "Andes Labs LLC",
+  receptor_valido: "Pollos Hermanos, S. A.",
   tolerancia_contrato_pct: 1,
   tope_por_pago_usd: 25000,
   presupuesto_por_categoria_usd: { Contratistas: 25000 },
@@ -29,7 +29,7 @@ const ctxBase: ContextoMotor = {
 
 const facturaOk: FacturaEntrada = {
   codigo: "T01", canal: "correo", fecha_recepcion: "2026-10-19", tipo_documento: "invoice",
-  emisor: "Carlos Méndez", receptor: "Andes Labs LLC", numero: "CM-1", fecha_emision: "2026-10-16",
+  emisor: "Carlos Méndez", receptor: "Pollos Hermanos, S. A.", numero: "CM-1", fecha_emision: "2026-10-16",
   descripcion: "Desarrollo", monto: 2800, moneda: "USD", confianza_extraccion: 1,
 };
 
@@ -65,7 +65,7 @@ describe("evaluarFactura", () => {
   });
 
   it("FRENAR si la factura va a nombre de otra empresa", () => {
-    const d = evaluarFactura({ ...facturaOk, receptor: "Andes Labs Guatemala, S.A." }, ctxBase);
+    const d = evaluarFactura({ ...facturaOk, receptor: "Pollos Hermanos Honduras, S. A." }, ctxBase);
     expect(d.decision).toBe("FRENAR");
     expect(d.controles.find((c) => c.regla === "R2")?.resultado).toBe("FALLA");
   });
