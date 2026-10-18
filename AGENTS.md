@@ -17,3 +17,5 @@
 - AI extraction lives in `src/lib/extraccion.functions.ts` (createServerFn, Lovable AI Gateway, openai/gpt-6-astra, streamed server-side); it only returns structured data and never decides. Why: keeps LOVABLE_API_KEY server-side and the AI/decision separation auditable.
 - Uploaded invoice files go to the private `facturas` storage bucket with anon RLS policies; the detail page renders them via short-lived signed URLs. Why: workspace blocks public buckets and the demo has no auth.
 - Supplier removal uses the atomic `gestionar_baja_proveedor` RPC with audit logging; history checks include normalized invoice issuers and linked decisions/payments, and a DELETE trigger blocks historical suppliers. Why: unlinked invoices must also retain their supplier and contract-only removal must not partially fail.
+
+- Supplier creation/editing uses the SECURITY INVOKER `guardar_proveedor` RPC to commit supplier, optional contract and audit event atomically; contract cadence stays `mensual`/`unica`. Why: RLS remains enforced and failed contract writes cannot leave partial supplier records.
