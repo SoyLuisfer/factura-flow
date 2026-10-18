@@ -57,6 +57,13 @@
       "when": 1792288744762,
       "tag": "0007_eliminacion_segura_proveedores",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792289360483,
+      "tag": "0008_guardar_proveedor_con_contrato_atomico",
+      "breakpoints": true
     }
   ]
 }

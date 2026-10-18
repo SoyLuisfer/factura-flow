@@ -458,6 +458,15 @@ export type Database = {
         Args: { p_accion: string; p_actor: string; p_id: string }
         Returns: string
       }
+      guardar_proveedor: {
+        Args: {
+          p_actor: string
+          p_contrato: Json
+          p_nuevo: boolean
+          p_proveedor: Json
+        }
+        Returns: string
+      }
       historial_proveedor: { Args: { p_id: string }; Returns: Json }
       normalizar_nombre_proveedor: { Args: { valor: string }; Returns: string }
       reiniciar_demo: { Args: never; Returns: undefined }
