@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { USUARIOS_DEMO } from "@/lib/datos";
 import { siguienteViernes, hoyGuatemala, validarAccion, type TramoPago } from "@/lib/tesoreria";
 import { formatearMonto, fmtFecha, leerMonto } from "@/lib/formato";
@@ -34,7 +35,9 @@ export function AccionTesoreria({ tramo }: { tramo: TramoPago }) {
     const problema = validarAccion(tramo, accion, leerMonto(monto), fecha, usuario, comentario);
     if (problema) { setError(problema); return; }
     setGuardando(true);
-    const { error: fallo } = await supabase.rpc("accion_tesoreria", { p_decision: tramo.decision.id, p_programacion: tramo.id, p_accion: accion, p_monto: accion === "parcial" ? leerMonto(monto) : null, p_fecha: fecha, p_actor: usuario, p_comentario: comentario.trim() });
+    // PostgreSQL accepts null for the virtual initial schedule and unused amount.
+    const argumentos = { p_decision: tramo.decision.id, p_programacion: tramo.id, p_accion: accion, p_monto: accion === "parcial" ? leerMonto(monto) : null, p_fecha: fecha, p_actor: usuario, p_comentario: comentario.trim() };
+    const { error: fallo } = await supabase.rpc("accion_tesoreria", argumentos as unknown as Database["public"]["Functions"]["accion_tesoreria"]["Args"]);
     setGuardando(false);
     if (fallo) {
       const m = fallo.message;
