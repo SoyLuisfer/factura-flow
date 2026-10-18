@@ -71,6 +71,13 @@
       "when": 1792290246760,
       "tag": "0009_tipo_relacion_y_cotizaciones",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792293813587,
+      "tag": "0010_empresa_demo_pollos_hermanos",
+      "breakpoints": true
     }
   ]
 }
