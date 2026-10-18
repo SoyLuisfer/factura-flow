@@ -26,6 +26,7 @@ export function AccionTesoreria({ tramo }: { tramo: TramoPago }) {
   const [error, setError] = useState<string | null>(null);
   const etiqueta = tramo.decision.factura?.codigo ?? tramo.decision.factura?.numero ?? "factura";
   function abrir(valor: string) {
+    if (tramo.factura_liberada || tramo.liberado_lote_id) return;
     if (valor === "aprobado") return;
     setAccion(valor); setMonto(""); setUsuario(""); setComentario(""); setError(null);
     setFecha(valor === "reprogramar" ? siguienteViernes(hoyGuatemala()) : siguienteViernes(tramo.fecha_pago, true));
@@ -41,11 +42,12 @@ export function AccionTesoreria({ tramo }: { tramo: TramoPago }) {
     setGuardando(false);
     if (fallo) {
       const m = fallo.message;
-      setError(m.includes("MONTO_PARCIAL") ? "El pago parcial debe ser menor que el monto pendiente y mayor que cero." : m.includes("FECHA_POSTERIOR") ? "La fecha debe ser posterior a la programada." : m.includes("DESACTUALIZADA") ? "La programación cambió. Cierra el diálogo y actualiza la página." : "No se pudo guardar la acción de tesorería. Intenta de nuevo.");
+      setError(m.includes("FONDOS_YA_LIBERADOS") ? "Los fondos de esta factura ya fueron liberados; no se puede cambiar su programación." : m.includes("MONTO_PARCIAL") ? "El pago parcial debe ser menor que el monto pendiente y mayor que cero." : m.includes("FECHA_POSTERIOR") ? "La fecha debe ser posterior a la programada." : m.includes("DESACTUALIZADA") ? "La programación cambió. Cierra el diálogo y actualiza la página." : "No se pudo guardar la acción de tesorería. Intenta de nuevo.");
       return;
     }
     await qc.invalidateQueries(); setAccion(null); toast.success("Programación actualizada y registrada en auditoría");
   }
+  if (tramo.factura_liberada || tramo.liberado_lote_id) return <span className="text-xs text-muted-foreground">Lote autorizado</span>;
   return <div onClick={(e) => e.stopPropagation()}>
     {tramo.estado === "programado" ? <Select value="aprobado" onValueChange={abrir}>
       <SelectTrigger className="w-36" aria-label={`Acción ${etiqueta}`}><SelectValue /></SelectTrigger>
