@@ -94,12 +94,17 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
     };
   });
 
+  const codigoPorFactura = new Map((facturas.data ?? []).map((f) => [f.id, f.codigo ?? f.numero ?? f.id]));
+
   return {
     politicaVersion: politica.data.version,
     parametros: politica.data.parametros as unknown as ParametrosPolitica,
     tiposCambio: tasas,
     proveedores: proveedores.data ?? [],
-    contratos: contratos.data ?? [],
+    contratos: (contratos.data ?? []).map((c) => ({
+      ...c,
+      factura_uso: c.factura_id_uso ? (codigoPorFactura.get(c.factura_id_uso) ?? null) : null,
+    })),
     cuentas: cuentasLista,
     pagosPrevios: pagosPrevios.data ?? [],
     decisionesPrevias,
