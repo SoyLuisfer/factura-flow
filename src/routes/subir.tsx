@@ -25,6 +25,8 @@ export const Route = createFileRoute("/subir")({
       { title: "Subir factura — Contralor" },
       { name: "description", content: "Carga una factura para que el agente la lea y la evalúe." },
       { property: "og:title", content: "Subir factura — Contralor" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:description", content: "Carga una factura para su evaluación." },
     ],
   }),

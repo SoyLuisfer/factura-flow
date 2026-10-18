@@ -24,6 +24,8 @@ export const Route = createFileRoute("/factura/$id")({
       { title: "Detalle de factura — Contralor" },
       { name: "description", content: "Datos extraídos, decisión del motor y traza de controles." },
       { property: "og:title", content: "Detalle de factura — Contralor" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:description", content: "Decisión y traza auditable de la factura." },
     ],
   }),

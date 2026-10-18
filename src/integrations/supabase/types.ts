@@ -454,6 +454,12 @@ export type Database = {
     }
     Functions: {
       cargar_datos_maestros: { Args: never; Returns: undefined }
+      gestionar_baja_proveedor: {
+        Args: { p_accion: string; p_actor: string; p_id: string }
+        Returns: string
+      }
+      historial_proveedor: { Args: { p_id: string }; Returns: Json }
+      normalizar_nombre_proveedor: { Args: { valor: string }; Returns: string }
       reiniciar_demo: { Args: never; Returns: undefined }
       seed_demo_si_vacio: { Args: never; Returns: boolean }
     }

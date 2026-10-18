@@ -18,6 +18,8 @@ export const Route = createFileRoute("/reglas")({
       { title: "Reglas — Contralor" },
       { name: "description", content: "Política de pagos versionada de Andes Labs." },
       { property: "og:title", content: "Reglas — Contralor" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:description", content: "Política de pagos versionada." },
     ],
   }),
