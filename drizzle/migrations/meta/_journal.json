@@ -85,6 +85,27 @@
       "when": 1792294225127,
       "tag": "0011_programacion_tesoreria_auditable",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792295860715,
+      "tag": "0012_liberacion_fondos_lotes_atomicos",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792296028879,
+      "tag": "0013_corregir_alias_y_proteger_decisiones_liberadas",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792296073865,
+      "tag": "0014_corregir_referencia_membresia_lote",
+      "breakpoints": true
     }
   ]
 }

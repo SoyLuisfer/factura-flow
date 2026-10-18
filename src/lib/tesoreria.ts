@@ -5,7 +5,7 @@ import type { DecisionConRelaciones } from "@/lib/datos";
 import type { DecisionSalida } from "@/lib/motorReglas";
 
 export type ProgramacionPago = Database["public"]["Tables"]["programacion_pagos"]["Row"];
-export type TramoPago = { id: string | null; decision: DecisionConRelaciones; monto: number; moneda: string; monto_usd: number; monto_cuenta: number; cuenta_pago: string; fecha_pago: string; estado: "programado" | "pospuesto" };
+export type TramoPago = { id: string | null; decision: DecisionConRelaciones; monto: number; moneda: string; monto_usd: number; monto_cuenta: number; cuenta_pago: string; fecha_pago: string; estado: "programado" | "pospuesto"; liberado_lote_id?: string | null; factura_liberada?: boolean };
 export const programacionQuery = queryOptions({ queryKey: ["programacion-pagos"], queryFn: async () => {
   const { data, error } = await supabase.from("programacion_pagos").select("*");
   if (error) throw error;
@@ -29,7 +29,7 @@ export function obtenerTramos(decisiones: DecisionConRelaciones[], programacione
   return [...ultimas.values()].flatMap((d): TramoPago[] => {
     if (!["PAGAR", "POSTERGAR"].includes(d.decision) || d.estado === "rechazada_humano") return [];
     const propias = programaciones.filter((p) => p.decision_id === d.id);
-    if (propias.length) return propias.map((p) => ({ ...p, decision: d, estado: p.estado === "programado" ? "programado" : "pospuesto" }));
+    if (propias.length) return propias.map((p) => ({ ...p, decision: d, factura_liberada: propias.some((r) => Boolean(r.liberado_lote_id)), estado: p.estado === "programado" ? "programado" : "pospuesto" }));
     const cuenta = cuentas.find((c) => c.id === d.cuenta_pago);
     if (!cuenta || !d.fecha_programada_pago || d.factura?.monto == null || !d.factura.moneda) return [];
     const tasa = cuenta.moneda === "USD" ? 1 : tasas.find((t) => t.moneda === cuenta.moneda)?.por_usd;
@@ -41,10 +41,10 @@ export function obtenerTramos(decisiones: DecisionConRelaciones[], programacione
 }
 
 /** Un registro devengado R9 y registros de caja R10 sin categoría para no contar presupuesto dos veces. */
-export function adaptarProgramacion(decision: DecisionSalida, pagos: Pick<ProgramacionPago, "estado" | "cuenta_pago" | "fecha_pago" | "monto_cuenta">[]): DecisionSalida[] {
+export function adaptarProgramacion(decision: DecisionSalida, pagos: (Pick<ProgramacionPago, "estado" | "cuenta_pago" | "fecha_pago" | "monto_cuenta"> & { liberado_lote_id?: string | null })[]): DecisionSalida[] {
   if (decision.decision !== "PAGAR" && !(decision.decision === "POSTERGAR" && pagos.length)) return [decision];
   const devengado = { ...decision, decision: "PAGAR" as const, monto_cuenta: 0, fecha_programada_pago: null };
-  const caja = pagos.filter((p) => p.estado === "programado").map((p) => ({ ...decision, decision: "PAGAR" as const, categoria: null, periodo: null, monto_usd: 0, cuenta_pago: p.cuenta_pago, monto_cuenta: p.monto_cuenta, fecha_programada_pago: p.fecha_pago }));
+  const caja = pagos.filter((p) => p.estado === "programado" && !p.liberado_lote_id).map((p) => ({ ...decision, decision: "PAGAR" as const, categoria: null, periodo: null, monto_usd: 0, cuenta_pago: p.cuenta_pago, monto_cuenta: p.monto_cuenta, fecha_programada_pago: p.fecha_pago }));
   return [devengado, ...caja];
 }
 

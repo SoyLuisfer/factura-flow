@@ -7,6 +7,8 @@ import { datosMaestrosQuery, decisionesQuery, empresaQuery, facturasQuery, type 
 import { ESTILO_DECISION, etiquetaDecision, fmtFechaCorta, fmtMonto, formatearPorcentaje, formatearTextoNumerico } from "@/lib/formato";
 import { obtenerTramos, programacionQuery, hoyGuatemala } from "@/lib/tesoreria";
 import { AccionTesoreria } from "@/components/accion-tesoreria";
+import { LiberarFondos } from "@/components/liberar-fondos";
+import { lotesQuery, obtenerLotePendiente } from "@/lib/lotes";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/")({
       context.queryClient.ensureQueryData(facturasQuery),
       context.queryClient.ensureQueryData(decisionesQuery),
       context.queryClient.ensureQueryData(programacionQuery),
+      context.queryClient.ensureQueryData(lotesQuery),
     ]),
   component: Tablero,
 });
@@ -38,6 +41,7 @@ function Tablero() {
   const { data: decisiones } = useSuspenseQuery(decisionesQuery);
 
   const { data: programacion } = useSuspenseQuery(programacionQuery);
+  const { data: lotes } = useSuspenseQuery(lotesQuery);
   const tramos = obtenerTramos(decisiones, programacion, maestros.cuentas, maestros.tiposCambio);
   const aprobados = tramos.filter((t) => t.estado === "programado");
   const pospuestos = tramos.filter((t) => t.estado === "pospuesto");
@@ -50,16 +54,18 @@ function Tablero() {
   const decididasAgente = decisiones.filter((x) => x.decidido_por === "Agente (automático)").length;
   const autonomia = decisiones.length > 0 ? Math.round((decididasAgente / decisiones.length) * 100) : 0;
 
-  const proximos = aprobados.filter((t) => t.fecha_pago >= hoyGuatemala());
-  const fechas = [...new Set(proximos.map((t) => t.fecha_pago))].sort();
+  const proximos = aprobados.filter((t) => !t.liberado_lote_id && t.fecha_pago >= hoyGuatemala());
+  const fechas = [...new Set([...proximos.map((t) => t.fecha_pago), ...lotes.filter((l) => l.fecha_pago >= hoyGuatemala()).map((l) => l.fecha_pago)])].sort();
   const calendario = fechas.map((fecha) => {
-    const pagos = aprobados.filter((t) => t.fecha_pago === fecha);
+    const pagos = proximos.filter((t) => t.fecha_pago === fecha);
     const porMoneda = new Map<string, number>();
     for (const t of pagos) {
       const moneda = maestros.cuentas.find((c) => c.id === t.cuenta_pago)?.moneda ?? t.moneda;
       porMoneda.set(moneda, (porMoneda.get(moneda) ?? 0) + t.monto_cuenta);
     }
-    return { fecha, porMoneda, facturas: new Set(pagos.map((t) => t.decision.factura_id)).size };
+    const liberados = lotes.filter((l) => l.fecha_pago === fecha);
+    const facturasLiberadas = aprobados.filter((t) => t.fecha_pago === fecha && t.liberado_lote_id);
+    return { fecha, porMoneda, liberados, facturas: new Set([...pagos, ...facturasLiberadas].map((t) => t.decision.factura_id)).size };
   });
 
   return (
@@ -88,9 +94,9 @@ function Tablero() {
         <h2 className="text-lg font-bold">Tesorería</h2>
         <div className="mt-3 grid gap-4 md:grid-cols-2">
           {[...maestros.cuentas].sort((a,b) => a.id.localeCompare(b.id)).map((cuenta) => {
-            const pagos = proximos.filter((t) => t.cuenta_pago === cuenta.id);
-            const fecha = [...new Set(pagos.map((t) => t.fecha_pago))].sort()[0];
-            const total = pagos.filter((t) => t.fecha_pago === fecha).reduce((s,t) => s+t.monto_cuenta,0);
+            const pendiente = obtenerLotePendiente(tramos, cuenta.id, hoyGuatemala());
+            const fecha = pendiente.fecha ?? lotes.find((l) => l.cuenta === cuenta.id)?.fecha_pago;
+            const total = pendiente.total;
             const saldo = cuenta.saldo_disponible-total;
             return <div key={cuenta.id} className="rounded-lg border bg-card p-5" data-testid={cuenta.id}>
               <h3 className="font-bold">{cuenta.id}</h3><p className="text-xs text-muted-foreground">{cuenta.banco}</p>
@@ -99,12 +105,13 @@ function Tablero() {
                 <div className="flex justify-between gap-3"><dt>Total a pagar {fecha ? fmtFechaCorta(fecha) : "—"}</dt><dd className="text-right font-bold">{fmtMonto(total,cuenta.moneda)}</dd></div>
                 <div className="flex justify-between gap-3 border-t pt-3"><dt>Saldo después del pago</dt><dd className={`text-right font-bold ${saldo<0 ? "text-destructive" : "text-foreground"}`}>{fmtMonto(saldo,cuenta.moneda)}</dd></div>
               </dl>
+              <LiberarFondos cuenta={cuenta} tramos={tramos} lotes={lotes.filter((l) => l.cuenta === cuenta.id)} />
             </div>;
           })}
         </div>
         <h3 className="mt-5 font-bold">Calendario de pagos</h3>
         <div className="mt-2 overflow-x-auto border-y"><Table><TableHeader><TableRow><TableHead>Viernes de pago</TableHead><TableHead className="text-right">Quetzales</TableHead><TableHead className="text-right">Dólares</TableHead><TableHead className="text-right">Facturas</TableHead></TableRow></TableHeader><TableBody>
-          {calendario.map((c) => <TableRow key={c.fecha}><TableCell className="capitalize">{fmtFechaCorta(c.fecha)}</TableCell><TableCell className="text-right">{fmtMonto(c.porMoneda.get("GTQ") ?? 0,"GTQ")}</TableCell><TableCell className="text-right">{fmtMonto(c.porMoneda.get("USD") ?? 0,"USD")}</TableCell><TableCell className="text-right">{c.facturas}</TableCell></TableRow>)}
+          {calendario.map((c) => <TableRow key={c.fecha}><TableCell className="capitalize">{fmtFechaCorta(c.fecha)}</TableCell>{["GTQ", "USD"].map((moneda) => <TableCell key={moneda} className="text-right">{fmtMonto(c.porMoneda.get(moneda) ?? 0, moneda)}{c.liberados.filter((l) => maestros.cuentas.find((a) => a.id === l.cuenta)?.moneda === moneda).map((l) => <div key={l.id} className="mt-1 text-xs font-bold text-decision-pagar">Liberado · {fmtMonto(l.total, moneda)}</div>)}</TableCell>)}<TableCell className="text-right">{c.facturas}</TableCell></TableRow>)}
           {!calendario.length && <TableRow><TableCell colSpan={4}>Sin pagos programados.</TableCell></TableRow>}
         </TableBody></Table></div>
       </section>
@@ -122,7 +129,7 @@ function Tablero() {
           <div className="mt-4 overflow-x-auto rounded-lg border bg-card"><Table><TableHeader><TableRow>
             <TableHead>Decisión</TableHead><TableHead>Proveedor / factura</TableHead><TableHead className="text-right">Monto programado</TableHead><TableHead className="text-right">Desde la cuenta</TableHead><TableHead>Cuenta de pago</TableHead><TableHead>Fecha programada</TableHead><TableHead>Acción</TableHead>
           </TableRow></TableHeader><TableBody>{aprobados.map((t) => <TableRow key={t.id ?? t.decision.id}>
-            <TableCell><Badge className={ESTILO_DECISION.PAGAR}>Aprobado</Badge></TableCell>
+            <TableCell><Badge className={ESTILO_DECISION.PAGAR}>{t.liberado_lote_id ? "Fondos liberados" : "Programado"}</Badge>{t.liberado_lote_id && <div className="mt-1 text-xs text-muted-foreground">{t.liberado_lote_id}</div>}</TableCell>
             <TableCell><Link to="/factura/$id" params={{id:t.decision.factura_id}} className="font-bold text-primary hover:underline">{t.decision.proveedor?.nombre ?? t.decision.factura?.emisor}</Link><div className="text-xs text-muted-foreground">{t.decision.factura?.codigo} · {t.decision.factura?.numero}</div></TableCell>
             <TableCell className="text-right whitespace-nowrap">{fmtMonto(t.monto,t.moneda)}</TableCell>
             <TableCell className="text-right whitespace-nowrap">{fmtMonto(t.monto_cuenta,maestros.cuentas.find((c) => c.id===t.cuenta_pago)?.moneda)}</TableCell>

@@ -1,0 +1,1 @@
+DO $$ BEGIN EXECUTE replace(pg_get_functiondef('public.liberar_fondos(text,date,uuid[],numeric,text,text)'::regprocedure),'lv_factura.factura_id','lf.factura_id'); END $$;

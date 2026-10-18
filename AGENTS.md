@@ -11,6 +11,7 @@
 
 ## Architecture rules
 - Treasury instalments live in `programacion_pagos` and mutations use the validated, atomic `accion_tesoreria` RPC; `contexto.ts` splits full accrual (R9) from active cash rows without category (R10). Why: treasury never changes the agent decision/trace or double-counts budgets, while cash reservations reflect the actual schedule.
+- Human fund releases use atomic `liberar_fondos`, immutable batch snapshots and a unique invoice membership table; released schedules stay for accrual but are excluded from cash reservations and protected against treasury edits. Why: debited balances cannot be reserved twice or invoices released into multiple batches.
 - Monetary displays and CSV use `formatearMonto` from `src/lib/formato.ts`; editable amount fields use `MontoInput` with unformatted values for persistence. Why: consistent presentation cannot corrupt numeric writes.
 - Currency choices and extraction normalization share the browser-safe exports in `src/lib/extraccion.ts`; the server validates AI output with that helper. Why: unsupported currencies cannot leak from AI into accepted structured data and the decision engine remains unchanged.
 - Payment decisions come only from the pure deterministic rules engine in `src/lib/motorReglas.ts` (no AI calls); AI only extracts invoice data. Why: hackathon judging requires auditable, non-AI decisions.
