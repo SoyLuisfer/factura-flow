@@ -144,7 +144,7 @@ function DetalleFactura() {
                     <span className={`absolute -left-9 top-0 grid size-6 place-items-center rounded-full border bg-card ${e.evento === "decidida" ? e.detalle?.includes("ESCALAR") ? "text-decision-escalar" : e.detalle?.includes("FRENAR") ? "text-decision-frenar" : e.detalle?.includes("POSTERGAR") ? "text-decision-postergar" : evento.tono : evento.tono}`}><Icono className="size-3.5" /></span>
                     <div className="font-bold">{evento.nombre}</div>
                     <div className="mt-1 text-xs text-muted-foreground">{fmtFechaHora(e.fecha_hora)} · {e.actor}</div>
-                    {e.detalle && <div className="mt-1 break-words text-xs text-muted-foreground">{formatearTextoNumerico(e.evento === "extraida" ? e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA ") : e.evento === "decidida" ? e.detalle.replace(/\bPAGAR\b/g, "Aprobado").replace(/\bFRENAR\b/g, "Frenado").replace(/\bESCALAR\b/g, "Escalado").replace(/\bPOSTERGAR\b/g, "Pospuesto") : e.detalle)}</div>}
+                    {e.detalle && <div className="mt-1 break-words text-xs text-muted-foreground">{formatearTextoNumerico(e.evento === "extraida" ? (e.detalle.includes("lectura guardada") ? e.detalle.replace(/^Extraída con /, "Leída con ") : e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA ")) : e.evento === "decidida" ? e.detalle.replace(/\bPAGAR\b/g, "Aprobado").replace(/\bFRENAR\b/g, "Frenado").replace(/\bESCALAR\b/g, "Escalado").replace(/\bPOSTERGAR\b/g, "Pospuesto") : e.detalle)}</div>}
                   </li>;
                 })}
               </ol>
