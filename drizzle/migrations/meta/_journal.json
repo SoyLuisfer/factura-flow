@@ -106,6 +106,27 @@
       "when": 1792296073865,
       "tag": "0014_corregir_referencia_membresia_lote",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792297049002,
+      "tag": "0015_guardado_facturas_atomico_y_pruebas_temporales",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792297247942,
+      "tag": "0016_autorizar_guardado_atomico_programacion",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792297403859,
+      "tag": "0017_aislar_pagos_temporales_de_liberacion",
+      "breakpoints": true
     }
   ]
 }

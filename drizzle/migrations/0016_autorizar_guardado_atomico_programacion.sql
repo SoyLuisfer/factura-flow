@@ -1,0 +1,2 @@
+ALTER FUNCTION public.guardar_factura_procesada(jsonb,jsonb,jsonb,text) SECURITY DEFINER;
+COMMENT ON FUNCTION public.guardar_factura_procesada(jsonb,jsonb,jsonb,text) IS 'Demo sin login: persistencia atómica de factura, decisión validada por triggers, programación y auditoría. Sin escrituras directas de programación desde anon.';

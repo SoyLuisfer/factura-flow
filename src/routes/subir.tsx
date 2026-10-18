@@ -10,15 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { ACTOR_AGENTE } from "@/lib/datos";
-import { construirContexto } from "@/lib/contexto";
-import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
-import { evaluarFactura, type DecisionSalida, type FacturaEntrada } from "@/lib/motorReglas";
+
+
+
+import { type DecisionSalida, type FacturaEntrada } from "@/lib/motorReglas";
 import { extraerFactura } from "@/lib/extraccion.functions";
 import type { ExtraccionFactura } from "@/lib/extraccion";
 import { archivoADataUrl, leerPdf } from "@/lib/pdf";
 import { ESTILO_DECISION, ETIQUETA_DECISION, fmtMonto } from "@/lib/formato";
-import type { Json } from "@/integrations/supabase/types";
+import { procesarFacturaExtraida, errorProcesamiento } from "@/lib/procesamiento";
+import { fmtFechaHora } from "@/lib/formato";
 
 export const Route = createFileRoute("/subir")({
   head: () => ({
@@ -56,91 +57,11 @@ const ETIQUETA_ESTADO: Record<EstadoItem, string> = {
 
 const CANALES = ["correo", "whatsapp", "slack", "otro"] as const;
 
-/** Fecha de hoy en Guatemala (UTC-6), formato AAAA-MM-DD. */
-function hoyISO() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guatemala", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
-
-/** Guarda factura + decisión + eventos (recibida, extraida, decidida). Devuelve el id de la factura. */
-export async function guardarFacturaProcesada(params: {
-  entrada: FacturaEntrada;
-  decision: DecisionSalida;
-  extraccion: ExtraccionFactura;
-  modelo: string;
-  archivoPath?: string | null;
-  nombreArchivo?: string | null;
-  textoOriginal?: string | null;
-}): Promise<string> {
-  const { entrada, decision: d, extraccion, modelo } = params;
-  const ahora = new Date().toISOString();
-
-  const { data: factura, error: errF } = await supabase
-    .from("facturas")
-    .insert({
-      canal: entrada.canal ?? null,
-      nombre_archivo: params.nombreArchivo ?? null,
-      archivo_url: params.archivoPath ?? null,
-      texto_original: params.textoOriginal ?? null,
-      tipo_documento: extraccion.tipo_documento,
-      emisor: extraccion.emisor,
-      receptor: extraccion.receptor,
-      numero: extraccion.numero,
-      fecha_emision: extraccion.fecha_emision,
-      fecha_vencimiento: extraccion.fecha_vencimiento,
-      fecha_recepcion: entrada.fecha_recepcion,
-      descripcion: extraccion.descripcion,
-      monto: extraccion.monto,
-      moneda: extraccion.moneda,
-      pago_banco: extraccion.pago_banco,
-      pago_cuenta: extraccion.pago_cuenta,
-      confianza_extraccion: extraccion.confianza,
-    })
-    .select("id")
-    .single();
-  if (errF) throw errF;
-
-  const { error: errD } = await supabase.from("decisiones").insert({
-    factura_id: factura.id,
-    decision: d.decision,
-    estado: d.estado,
-    motivo: d.motivo,
-    controles: d.controles as unknown as Json,
-    monto_usd: d.monto_usd,
-    proveedor_id: d.proveedor_id,
-    categoria: d.categoria,
-    cuenta_pago: d.cuenta_pago,
-    fecha_programada_pago: d.fecha_programada_pago,
-    escalar_a: d.escalar_a,
-    factura_relacionada_id: d.factura_relacionada_id,
-    politica_version: d.politica_version,
-    decidido_por: d.decidido_por,
-    decidido_en: ahora,
-  });
-  if (errD) throw errD;
-
-  const { error: errE } = await supabase.from("registro_eventos").insert([
-    { factura_id: factura.id, evento: "recibida", actor: ACTOR_AGENTE, detalle: `Recibida por ${entrada.canal ?? "carga manual"}`, fecha_hora: ahora },
-    {
-      factura_id: factura.id,
-      evento: "extraida",
-      actor: ACTOR_AGENTE,
-      detalle: `Extraída con ${modelo} (confianza ${extraccion.confianza.toFixed(2)})${extraccion.campos_dudosos.length > 0 ? ` · campos dudosos: ${extraccion.campos_dudosos.join(", ")}` : ""}`,
-      fecha_hora: ahora,
-    },
-    { factura_id: factura.id, evento: "decidida", actor: d.decidido_por, detalle: `${d.decision} — ${d.motivo}`, fecha_hora: ahora },
-  ]);
-  if (errE) throw errE;
-
-  await consumirCotizacionSiAplica(d, factura.id, d.decidido_por);
-
-  return factura.id;
-}
-
 function SubirFactura() {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [canal, setCanal] = useState<string>("correo");
-  const [fechaRecepcion, setFechaRecepcion] = useState(hoyISO());
+  const [ultimaRecepcion, setUltimaRecepcion] = useState<string | null>(null);
   const [items, setItems] = useState<ItemProceso[]>([]);
   const [textoChat, setTextoChat] = useState("");
   const [procesandoChat, setProcesandoChat] = useState(false);
@@ -151,6 +72,9 @@ function SubirFactura() {
   }
 
   async function procesarArchivo(archivo: File) {
+    const recibidaEn = new Date().toISOString();
+    setUltimaRecepcion(recibidaEn);
+    let archivoPath: string | null = null;
     const id = crypto.randomUUID();
     setItems((prev) => [...prev, { id, nombre: archivo.name, estado: "subiendo" }]);
     try {
@@ -158,6 +82,7 @@ function SubirFactura() {
       const path = `${Date.now()}-${archivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error: errUp } = await supabase.storage.from("facturas").upload(path, archivo);
       if (errUp) throw errUp;
+      archivoPath = path;
 
       // 2. Leer el contenido
       actualizarItem(id, { estado: "leyendo" });
@@ -193,7 +118,7 @@ function SubirFactura() {
 
       // 4. Decidir con el motor (contexto completo de la base)
       actualizarItem(id, { estado: "decidiendo" });
-      const ctx = await construirContexto();
+      
       const entrada: FacturaEntrada = {
         canal,
         tipo_documento: extraccion.tipo_documento,
@@ -208,14 +133,13 @@ function SubirFactura() {
         pago_banco: extraccion.pago_banco,
         pago_cuenta: extraccion.pago_cuenta,
         confianza_extraccion: extraccion.confianza,
-        fecha_recepcion: `${fechaRecepcion}T12:00:00Z`,
+        fecha_recepcion: recibidaEn,
       };
-      const decision = evaluarFactura(entrada, ctx);
+      
 
       // 5. Guardar
-      const facturaId = await guardarFacturaProcesada({
+      const { facturaId, decision } = await procesarFacturaExtraida({
         entrada,
-        decision,
         extraccion,
         modelo,
         archivoPath: path,
@@ -225,12 +149,15 @@ function SubirFactura() {
       actualizarItem(id, { estado: "listo", facturaId, decision, extraccion });
       await qc.invalidateQueries();
     } catch (e) {
-      actualizarItem(id, { estado: "error", detalle: (e as Error).message });
+      if (archivoPath) await supabase.storage.from("facturas").remove([archivoPath]);
+      actualizarItem(id, { estado: "error", detalle: errorProcesamiento(e) });
     }
   }
 
   async function procesarChat() {
     if (!textoChat.trim()) return void toast.error("Pega el texto del mensaje primero");
+    const recibidaEn = new Date().toISOString();
+    setUltimaRecepcion(recibidaEn);
     setProcesandoChat(true);
     const id = crypto.randomUUID();
     const nombre = `Mensaje de ${canal}`;
@@ -242,7 +169,7 @@ function SubirFactura() {
       if (errorExtraccion) toast.warning("La extracción falló dos veces; se guarda con confianza 0 y el motor la escalará.");
 
       actualizarItem(id, { estado: "decidiendo" });
-      const ctx = await construirContexto();
+      
       const entrada: FacturaEntrada = {
         canal,
         tipo_documento: extraccion.tipo_documento,
@@ -257,12 +184,11 @@ function SubirFactura() {
         pago_banco: extraccion.pago_banco,
         pago_cuenta: extraccion.pago_cuenta,
         confianza_extraccion: extraccion.confianza,
-        fecha_recepcion: `${fechaRecepcion}T12:00:00Z`,
+        fecha_recepcion: recibidaEn,
       };
-      const decision = evaluarFactura(entrada, ctx);
-      const facturaId = await guardarFacturaProcesada({
+      
+      const { facturaId, decision } = await procesarFacturaExtraida({
         entrada,
-        decision,
         extraccion,
         modelo,
         nombreArchivo: null,
@@ -272,7 +198,7 @@ function SubirFactura() {
       setTextoChat("");
       await qc.invalidateQueries();
     } catch (e) {
-      actualizarItem(id, { estado: "error", detalle: (e as Error).message });
+      actualizarItem(id, { estado: "error", detalle: errorProcesamiento(e) });
     } finally {
       setProcesandoChat(false);
     }
@@ -283,7 +209,7 @@ function SubirFactura() {
     setArrastrando(false);
     const archivos = Array.from(e.dataTransfer.files).filter((f) => /\.(pdf|png|jpe?g|txt)$/i.test(f.name));
     if (archivos.length === 0) return void toast.error("Solo se aceptan archivos PDF, PNG, JPG o TXT");
-    for (const a of archivos) void procesarArchivo(a);
+    void (async () => { for (const a of archivos) await procesarArchivo(a); })();
   }
 
   return (
@@ -307,7 +233,7 @@ function SubirFactura() {
         </div>
         <div>
           <Label>Fecha de recepción</Label>
-          <Input type="date" className="mt-1" value={fechaRecepcion} onChange={(e) => setFechaRecepcion(e.target.value)} />
+          <div className="mt-1 tabular-nums text-sm">{ultimaRecepcion ? fmtFechaHora(ultimaRecepcion) : "Al recibir la factura"}</div>
         </div>
       </div>
 
@@ -337,7 +263,7 @@ function SubirFactura() {
           className="hidden"
           onChange={(e) => {
             const archivos = Array.from(e.target.files ?? []);
-            for (const a of archivos) void procesarArchivo(a);
+            void (async () => { for (const a of archivos) await procesarArchivo(a); })();
             e.target.value = "";
           }}
         />

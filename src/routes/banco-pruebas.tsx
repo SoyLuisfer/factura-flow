@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { datosMaestrosQuery, reiniciarDemo } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
-import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
+import { verificarFlujoReal } from "@/lib/flujo-real";
+import { procesarFacturaExtraida } from "@/lib/procesamiento";
+import type { ExtraccionFactura } from "@/lib/extraccion";
 import { supabase } from "@/integrations/supabase/client";
 import { CASOS_PRUEBA } from "@/lib/casosPrueba";
 import { formatearMonto, formatearPorcentaje, formatearTextoNumerico, fmtFecha } from "@/lib/formato";
@@ -65,10 +67,10 @@ function verificarDobleCarga(primera: ResultadoLote[], ctx: Parameters<typeof pr
   const segunda = procesarLote(CASOS_PRUEBA, ctx2);
 
   for (let i = 0; i < primera.length; i++) {
-    const d1 = primera[i]!.decision.decision;
-    const d2 = segunda[i]!.decision.decision;
+    const d1 = primera[i]?.decision.decision;
+    const d2 = segunda[i]?.decision.decision;
     if (d1 !== "FRENAR" && d2 !== "FRENAR") {
-      return { ok: false, detalle: `${primera[i]!.factura.codigo}: primera pasada ${d1}, segunda ${d2} (debía ser FRENAR por duplicado)` };
+      return { ok: false, detalle: `${primera[i]?.factura.codigo}: primera pasada ${d1}, segunda ${d2} (debía ser FRENAR por duplicado)` };
     }
   }
 
@@ -82,7 +84,7 @@ function verificarDobleCarga(primera: ResultadoLote[], ctx: Parameters<typeof pr
     consumo.set(clave, (consumo.get(clave) ?? 0) + (d.monto_usd ?? 0));
   }
   for (const [clave, total] of consumo) {
-    const cat = clave.split("|")[0]!;
+    const cat = clave.split("|")[0] ?? "";
     const presupuesto = presupuestos[cat];
     if (presupuesto != null && total > presupuesto + 0.005) {
       return { ok: false, detalle: `Categoría ${cat}: consumido USD ${total.toFixed(2)} > presupuesto USD ${presupuesto}` };
@@ -96,6 +98,7 @@ function BancoPruebas() {
   useSuspenseQuery(datosMaestrosQuery);
   const [resultados, setResultados] = useState<ResultadoLote[] | null>(null);
   const [dobleCarga, setDobleCarga] = useState<ResultadoDobleCarga | null>(null);
+  const [flujoReal, setFlujoReal] = useState<ResultadoDobleCarga | null>(null);
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const [corriendo, setCorriendo] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -114,7 +117,8 @@ function BancoPruebas() {
       const res = procesarLote(CASOS_PRUEBA, ctx);
       setResultados(res);
       setDobleCarga(verificarDobleCarga(res, ctx));
-      toast.success("Pruebas ejecutadas en memoria (sin tocar la base)");
+      setFlujoReal(await verificarFlujoReal());
+      toast.success("Pruebas ejecutadas y datos temporales limpiados");
     } catch (e) {
       toast.error("Error al correr pruebas: " + (e as Error).message);
     } finally {
@@ -128,73 +132,15 @@ function BancoPruebas() {
       // Idempotente: primero deja la base como "Reiniciar datos demo"
       await reiniciarDemo();
 
-      // Contexto con el historial recién reiniciado (vacío), ANTES de insertar,
-      // para que las facturas del lote no se detecten como duplicados de sí mismas.
       const ctx = await construirContexto();
-
-      // 1. Insertar las facturas
-      const facturasInsert = CASOS_PRUEBA.map((c) => ({
-        codigo: c.codigo,
-        canal: c.canal,
-        nombre_archivo: c.archivo,
-        tipo_documento: c.tipo_documento,
-        emisor: c.emisor,
-        receptor: c.receptor,
-        numero: c.numero,
-        fecha_emision: c.fecha_emision,
-        fecha_vencimiento: c.fecha_vencimiento,
-        fecha_recepcion: c.fecha_recepcion,
-        descripcion: c.descripcion,
-        monto: c.monto,
-        moneda: c.moneda,
-        pago_banco: c.pago_banco ?? null,
-        pago_cuenta: c.pago_cuenta ?? null,
-        confianza_extraccion: 1,
-      }));
-      const { data: facturas, error: errF } = await supabase.from("facturas").insert(facturasInsert).select("id, codigo");
-      if (errF) throw errF;
-      const idPorCodigo = new Map(facturas.map((f) => [f.codigo, f.id]));
-
-      // 2. Procesar con el motor (con los ids reales para enlazar duplicados)
-      const casosConId = CASOS_PRUEBA.map((c) => ({ ...c, id: idPorCodigo.get(c.codigo) }));
-      const res = procesarLote(casosConId, ctx);
-
-      // 3. Guardar decisiones y eventos
-      const ahora = new Date().toISOString();
-      const decisionesInsert = res.map(({ factura, decision: d }) => ({
-        factura_id: idPorCodigo.get(factura.codigo!)!,
-        decision: d.decision,
-        estado: d.estado,
-        motivo: d.motivo,
-        controles: d.controles as unknown as import("@/integrations/supabase/types").Json,
-        monto_usd: d.monto_usd,
-        proveedor_id: d.proveedor_id,
-        categoria: d.categoria,
-        cuenta_pago: d.cuenta_pago,
-        fecha_programada_pago: d.fecha_programada_pago,
-        escalar_a: d.escalar_a,
-        factura_relacionada_id: d.factura_relacionada_id,
-        politica_version: d.politica_version,
-        decidido_por: d.decidido_por,
-        decidido_en: ahora,
-      }));
-      const { error: errD } = await supabase.from("decisiones").insert(decisionesInsert);
-      if (errD) throw errD;
-
-      const eventosInsert = res.map(({ factura, decision: d }) => ({
-        evento: "decidida",
-        actor: d.decidido_por,
-        factura_id: idPorCodigo.get(factura.codigo!)!,
-        detalle: `${factura.codigo}: ${d.decision} — ${d.motivo}`,
-        fecha_hora: ahora,
-      }));
-      const { error: errE } = await supabase.from("registro_eventos").insert(eventosInsert);
-      if (errE) throw errE;
-
-      // 4. Consumir cotizaciones de las facturas aprobadas
-      for (const { factura, decision: d } of res) {
-        await consumirCotizacionSiAplica(d, idPorCodigo.get(factura.codigo!)!, d.decidido_por);
+      const res: ResultadoLote[] = [];
+      const casos = [...CASOS_PRUEBA].sort((a,b) => a.fecha_recepcion.localeCompare(b.fecha_recepcion) || a.codigo.localeCompare(b.codigo));
+      for (const c of casos) {
+        const extraccion: ExtraccionFactura = { ...c, fecha_vencimiento: c.fecha_vencimiento ?? null, pago_banco: c.pago_banco ?? null, pago_cuenta: c.pago_cuenta ?? null, confianza: 1, campos_dudosos: [] };
+        const { facturaId, decision } = await procesarFacturaExtraida({ entrada: { ...c, confianza_extraccion: 1, fecha_recepcion: `${c.fecha_recepcion}T12:00:00-06:00` }, extraccion, modelo: 'Datos de prueba' });
+        res.push({ factura: { ...c, id: facturaId }, decision });
       }
+      setFlujoReal(await verificarFlujoReal());
 
       setResultados(res);
       setDobleCarga(verificarDobleCarga(res, ctx));
@@ -213,6 +159,7 @@ function BancoPruebas() {
       await reiniciarDemo();
       setResultados(null);
       setDobleCarga(null);
+      setFlujoReal(null);
       await qc.invalidateQueries();
       toast.success("Datos demo reiniciados");
     } catch (e) {
@@ -266,7 +213,7 @@ function BancoPruebas() {
 
       {resultados && (
         <>
-          <div className="mt-8 grid gap-4 sm:grid-cols-4">
+          <div className="mt-8 grid gap-4 sm:grid-cols-5">
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Coincidencias</div>
               <div className="mt-1 text-2xl font-bold">{coincidencias}/{total}</div>
@@ -285,6 +232,11 @@ function BancoPruebas() {
                 {dobleCarga ? (dobleCarga.ok ? "OK" : "FALLA") : "—"}
               </div>
               {dobleCarga && <div className="mt-1 text-xs text-muted-foreground">{dobleCarga.detalle}</div>}
+            </div>
+            <div className="rounded-lg border bg-card p-4">
+              <div className="text-sm text-muted-foreground">Flujo real</div>
+              <div className={`mt-1 text-2xl font-bold ${flujoReal?.ok ? "text-decision-pagar" : "text-decision-frenar"}`}>{flujoReal ? (flujoReal.ok ? "OK" : "FALLA") : "—"}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{flujoReal?.detalle}</div>
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ContextoMotor, DecisionSalida, FacturaRecibidaLike, ParametrosPolitica, TipoDecision } from "@/lib/motorReglas";
 import { adaptarProgramacion } from "@/lib/tesoreria";
+import { diaGuatemala } from "@/lib/fechas";
 
 /**
  * Construye el contexto del motor leyendo la base de datos.
@@ -8,7 +9,7 @@ import { adaptarProgramacion } from "@/lib/tesoreria";
  * ya guardadas, para que R3 (duplicados), R9 (presupuesto) y R10 (saldo)
  * consideren lo que ya existe y no solo el lote en curso.
  */
-export async function construirContexto(opciones?: { incluirHistorial?: boolean }): Promise<ContextoMotor> {
+export async function construirContexto(opciones?: { incluirHistorial?: boolean; pruebaId?: string }): Promise<ContextoMotor> {
   const incluirHistorial = opciones?.incluirHistorial ?? true;
 
   const [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios, facturas, decisiones, programacion] = await Promise.all([
@@ -19,7 +20,9 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
     supabase.from("cuentas_bancarias").select("*"),
     supabase.from("pagos_previos").select("*"),
     incluirHistorial
-      ? supabase.from("facturas").select("id, codigo, emisor, numero, fecha_recepcion, canal, monto, moneda")
+      ? (opciones?.pruebaId
+          ? supabase.from("facturas").select("id, codigo, emisor, numero, fecha_recepcion, canal, monto, moneda").eq("prueba_flujo_id", opciones.pruebaId)
+          : supabase.from("facturas").select("id, codigo, emisor, numero, fecha_recepcion, canal, monto, moneda").is("prueba_flujo_id", null))
       : Promise.resolve({ data: [], error: null }),
     incluirHistorial
       ? supabase.from("decisiones").select("*, factura:facturas!decisiones_factura_id_fkey(id, numero, fecha_recepcion, monto, moneda)")
@@ -48,7 +51,8 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
     proveedor_id: string | null;
     factura: { id: string; numero: string | null; fecha_recepcion: string | null; monto: number | null; moneda: string | null } | null;
   };
-  const filas = (decisiones.data ?? []) as unknown as FilaDecision[];
+  const idsVisibles = new Set((facturas.data ?? []).map((f) => f.id));
+  const filas = ((decisiones.data ?? []) as unknown as FilaDecision[]).filter((d) => idsVisibles.has(d.factura_id));
   const ultimaPorFactura = new Map<string, FilaDecision>();
   for (const d of filas) {
     const prev = ultimaPorFactura.get(d.factura_id);
@@ -60,7 +64,7 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
     codigo: f.codigo ?? undefined,
     emisor: f.emisor,
     numero: f.numero,
-    fecha_recepcion: f.fecha_recepcion ?? "",
+    fecha_recepcion: diaGuatemala(f.fecha_recepcion) ?? "",
     canal: f.canal,
     decision: ultimaPorFactura.get(f.id)?.decision,
   }));
@@ -92,7 +96,7 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
       decidido_por: "",
       monto_cuenta: montoCuenta,
       moneda_cuenta: cuenta?.moneda ?? null,
-      periodo: (f?.fecha_recepcion ?? d.decidido_en).slice(0, 7),
+      periodo: (diaGuatemala(f?.fecha_recepcion) ?? '').slice(0, 7),
     };
     const pagos = (programacion.data ?? []).filter((p) => p.decision_id === d.id);
     return pagos.length ? adaptarProgramacion(registro, pagos) : [registro];
