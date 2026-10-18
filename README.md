@@ -1,114 +1,179 @@
-# Factura Flow
+# Contralor
 
-Vamos a construir "Contralor", un agente de cuentas por pagar para el reto Blinka del 30X Hackathon. El agente revisa las facturas de una empresa y decide qué hacer con cada una: PAGAR, FRENAR, ESCALAR a una persona o POSTERGAR, dentro de reglas que la empresa configura. Deja un registro auditable de cada decisión. No se mueve dinero real ni hay integración bancaria: la app decide, registra y explica. Toda la interfaz va en español.
+**Reto Blinka · 30X Hackathon 2026: agentes que pagan por la empresa.**
 
+Contralor es un agente de cuentas por pagar. Lee las facturas que llegan por correo, WhatsApp o Slack y decide qué hacer con cada una:
 
+- **pagarla**, y la programa para el viernes;
+- **frenarla**;
+- **posponerla**;
+- **escalarla** a una persona.
 
-Empresa demo (ficticia): Pollos Hermanos, S. A., empresa guatemalteca de producción y venta de alimentos con contratistas y proveedores en Guatemala, Colombia, México y Argentina.
+Decide siempre dentro de las reglas que la empresa define, y cada decisión queda explicada regla por regla.
 
+> Empresa demo: **Pollos Hermanos, S. A.** (Guatemala), ficticia. Todos los nombres, cuentas, NIT y montos son inventados. No se mueve dinero real.
 
+- **Demo:** https://contralor.lovable.app
+- **Video:** <URL del video>
 
-PRINCIPIOS NO NEGOCIABLES (esto es lo que evalúa el jurado; aprobar un pago indebido descalifica):
+---
 
-1. La IA SOLO lee facturas y las convierte en datos estructurados. La IA NUNCA decide.
+## El problema
 
-2. La decisión la toma un motor de reglas determinista en TypeScript puro, sin ninguna llamada a IA, en src/lib/motorReglas.ts. Debe ser una función pura: evaluarFactura(factura, contexto) => resultado.
+En una empresa mediana, cuentas por pagar recibe facturas por todos los canales. Una persona revisa a mano si cada factura:
 
-3. Una factura solo puede quedar en PAGAR si TODOS los controles están en OK o NO_APLICA. Cualquier FALLA o NO_EVALUABLE impide PAGAR.
+- está a nombre de la empresa;
+- no se pagó antes;
+- coincide con el contrato;
+- cabe en el presupuesto;
+- se paga desde una cuenta con saldo.
 
-4. Nada en la app puede poner una factura en PAGAR excepto: (a) el motor con todos los controles OK, o (b) la aprobación explícita de una persona, registrando su nombre, fecha y hora, y comentario.
+Es lento, y los errores cuestan dinero: pagos duplicados, cuentas bancarias cambiadas, montos sobre lo pactado.
 
-5. Cada decisión guarda la traza completa de controles evaluados, para que cualquier persona entienda el porqué sin abrir el código.
+Contralor automatiza lo rutinario y **solo interrumpe a una persona cuando algo sale de las reglas**.
 
+**Impacto en el set de prueba (18 facturas ficticias de un mes típico):**
 
+- **67 % sin intervención humana.** El agente resuelve 12 de las 18 facturas por sí solo.
+- **0 pagos fuera de reglas.** Detuvo los dos duplicados (uno enviado por WhatsApp y una factura ya pagada), el cambio de cuenta bancaria, el sobreprecio del 10 %, el proveedor no registrado y la factura emitida a otra entidad.
+- **La persona solo revisa 6 facturas.** Cada una llega con la regla que falló, los números que usó el agente y el área responsable (Finanzas o Contabilidad).
 
-En esta etapa construye solo el modelo de datos y los datos demo. En el siguiente mensaje te paso el motor de reglas y los casos de prueba. Las demás pantallas y la lectura con IA vienen después. Deja ya una navegación lateral con: Tablero, Subir factura, Registro de auditoría, Reglas, Proveedores y Banco de pruebas (las que aún no existen pueden mostrar "Próximamente").
+## Cómo funciona
 
-
-
-=== MODELO DE DATOS (Lovable Cloud) ===
-
-- empresa (1 fila): razon_social, pais_constitucion, id_fiscal, direccion, moneda_reporte.
-
-- cuentas_bancarias: id (texto, ej. BANK-USD), banco, moneda, numero, saldo_disponible.
-
-- politicas: id, version (texto: v1, v2…), vigente (bool, solo una vigente), creada_en, creada_por, parametros (jsonb). Al editar la política nunca se sobrescribe: se crea una versión nueva y la anterior queda en el historial.
-
-- tipos_cambio: moneda, por_usd (unidades de la moneda por 1 USD), vigente_desde, vigente_hasta.
-
-- proveedores: id, nombre, pais, tipo, categoria, moneda_factura, cuenta_pago (id de cuenta_bancaria desde la que se le paga), permite_conversion (bool), banco_beneficiario, cuenta_beneficiario, expediente_completo (bool), activo (bool).
-
-- contratos: id, proveedor_id, concepto, tipo (mensual | unica), monto, moneda.
-
-- pagos_previos: id, proveedor_id, factura, monto, moneda, monto_usd, categoria, fecha_pago, cuenta, decidido_por.
-
-- facturas: id, codigo (ej. F01), archivo_url, nombre_archivo, canal (correo | whatsapp | slack | otro), fecha_recepcion, tipo_documento, emisor, receptor, numero, fecha_emision, fecha_vencimiento, descripcion, monto, moneda, pago_banco, pago_cuenta, confianza_extraccion (0 a 1), texto_original, creada_en.
-
-- decisiones: id, factura_id, decision (PAGAR | FRENAR | ESCALAR | POSTERGAR), estado (final | pendiente_aprobacion | aprobada_humano | rechazada_humano), decidido_por, decidido_en, motivo, controles (jsonb), proveedor_id, categoria, monto_usd, cuenta_pago, fecha_programada_pago, politica_version, escalar_a (Finanzas | Contabilidad | null), factura_relacionada_id (para duplicados), aprobador, aprobado_en, comentario_aprobacion, ajuste (jsonb).
-
-- registro_eventos (append-only, nunca se edita ni se borra): id, fecha_hora, factura_id, evento (recibida | extraida | decidida | aprobada | rechazada | politica_modificada | proveedor_modificado), actor ("Agente (automático)" o el nombre de la persona), detalle.
-
-
-
-Para el demo no hay login: el jurado entra directo. Las acciones humanas piden elegir el usuario en un selector: "Luis Samayoa (Finanzas)" o "Ana Morales (Contabilidad)".
-
-
-
-=== DATOS DEMO ===
-
-Crea una función seedDemo() que cargue estos datos al iniciar si la base está vacía. Agrega en "Banco de pruebas" un botón "Reiniciar datos demo" que borre facturas, decisiones y eventos, y vuelva a cargar los datos maestros.
-
-
-
-Empresa: {"razon_social": "Pollos Hermanos, S. A.", "pais_constitucion": "Guatemala", "id_fiscal": "NIT 0000000-0 (ficticio)", "direccion": "Calzada Demo 10-20, Zona 10, Ciudad de Guatemala (ficticia)", "actividad": "Producción y venta de alimentos", "moneda_reporte": "GTQ"}
-
-
-
-Cuentas bancarias: [{"id":"BANK-USD","banco":"Banco Andino Demo","moneda":"USD","numero":"DEMO-USD-0001","saldo_disponible":120000.0},{"id":"BANK-GTQ","banco":"Banco del Valle Demo","moneda":"GTQ","numero":"DEMO-GTQ-0002","saldo_disponible":150000.0}]
-
-
-
-Política v1 (parametros, vigente desde 2026-10-01, creada_por "Dirección Financiera"):
-
-{"receptor_valido":"Pollos Hermanos, S. A.","campos_obligatorios":["tipo_documento","emisor","receptor","numero","fecha_emision","descripcion","monto","moneda"],"tipos_documento_validos":["factura","cuenta de cobro","invoice"],"tope_por_pago_usd":25000.0,"tolerancia_contrato_pct":1.0,"postergacion_automatica_max_usd":5000.0,"calendario_pagos":{"dia_corte":"martes","dia_pago":"viernes"},"presupuesto_por_categoria_usd":{"Contratistas":25000.0,"Software y hosting":1500.0,"Servicios profesionales":3000.0,"Marketing":4000.0,"Proyectos":40000.0,"Oficina":1200.0},"umbral_confianza_extraccion":0.7}
-
-
-
-Tipos de cambio (por 1 USD, vigentes 2026-10-01 a 2026-10-31): {"USD":1.0,"GTQ":7.7}
-
-
-
-Proveedores: [{"id": "V001", "nombre": "Estudio Ceiba Diseño, S.A.", "pais": "Guatemala", "tipo": "Agencia", "categoria": "Marketing", "moneda_factura": "GTQ", "cuenta_pago": "BANK-GTQ", "permite_conversion": false, "banco_beneficiario": "Banco del Valle Demo", "cuenta_beneficiario": "DEMO-GT-110-4521", "expediente_completo": true, "activo": true, "tipo_relacion": "cotizacion"}, {"id": "V002", "nombre": "María José Castillo", "pais": "Colombia", "tipo": "Contratista", "categoria": "Contratistas", "moneda_factura": "USD", "cuenta_pago": "BANK-USD", "permite_conversion": false, "banco_beneficiario": "Banco Cafetero Demo", "cuenta_beneficiario": "DEMO-CO-220-7781", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V003", "nombre": "Carlos Méndez", "pais": "México", "tipo": "Contratista", "categoria": "Contratistas", "moneda_factura": "USD", "cuenta_pago": "BANK-USD", "permite_conversion": false, "banco_beneficiario": "Banco Azteca Demo", "cuenta_beneficiario": "DEMO-MX-330-1209", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V004", "nombre": "Lucía Fernández", "pais": "Argentina", "tipo": "Contratista", "categoria": "Contratistas", "moneda_factura": "USD", "cuenta_pago": "BANK-USD", "permite_conversion": false, "banco_beneficiario": "Banco Pampa Demo", "cuenta_beneficiario": "DEMO-AR-440-6630", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V005", "nombre": "Quetzal Cloud Hosting S.A.S.", "pais": "Colombia", "tipo": "Proveedor", "categoria": "Software y hosting", "moneda_factura": "USD", "cuenta_pago": "BANK-GTQ", "permite_conversion": true, "banco_beneficiario": "Banco Cafetero Demo", "cuenta_beneficiario": "DEMO-CO-220-9902", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V006", "nombre": "Morales & Asociados, Contadores", "pais": "Guatemala", "tipo": "Proveedor", "categoria": "Servicios profesionales", "moneda_factura": "GTQ", "cuenta_pago": "BANK-GTQ", "permite_conversion": false, "banco_beneficiario": "Banco del Valle Demo", "cuenta_beneficiario": "DEMO-GT-110-3378", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V007", "nombre": "Ríos Abogados, S.C.", "pais": "México", "tipo": "Proveedor", "categoria": "Servicios profesionales", "moneda_factura": "USD", "cuenta_pago": "BANK-GTQ", "permite_conversion": false, "banco_beneficiario": "Banco Azteca Demo", "cuenta_beneficiario": "DEMO-MX-330-5544", "expediente_completo": true, "activo": true, "tipo_relacion": "cotizacion"}, {"id": "V008", "nombre": "Cóndor Data Labs Inc.", "pais": "Estados Unidos", "tipo": "Proveedor", "categoria": "Proyectos", "moneda_factura": "USD", "cuenta_pago": "BANK-USD", "permite_conversion": false, "banco_beneficiario": "Banco Andino Demo", "cuenta_beneficiario": "DEMO-US-550-0087", "expediente_completo": true, "activo": true, "tipo_relacion": "cotizacion"}, {"id": "V009", "nombre": "Kevin Ortiz", "pais": "Guatemala", "tipo": "Contratista", "categoria": "Contratistas", "moneda_factura": "GTQ", "cuenta_pago": "BANK-GTQ", "permite_conversion": false, "banco_beneficiario": "Banco del Valle Demo", "cuenta_beneficiario": "DEMO-GT-110-8812", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V010", "nombre": "Licencias Volcán S.A.", "pais": "Guatemala", "tipo": "Proveedor", "categoria": "Software y hosting", "moneda_factura": "USD", "cuenta_pago": "BANK-USD", "permite_conversion": false, "banco_beneficiario": "Banco del Valle Demo", "cuenta_beneficiario": "DEMO-GT-USD-110-2290", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V011", "nombre": "Sofía Herrera", "pais": "Colombia", "tipo": "Contratista", "categoria": "Contratistas", "moneda_factura": "USD", "cuenta_pago": "BANK-USD", "permite_conversion": false, "banco_beneficiario": "Banco Cafetero Demo", "cuenta_beneficiario": "DEMO-CO-220-4410", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V012", "nombre": "Coworking Ceiba Zona 4", "pais": "Guatemala", "tipo": "Proveedor", "categoria": "Oficina", "moneda_factura": "GTQ", "cuenta_pago": "BANK-GTQ", "permite_conversion": false, "banco_beneficiario": "Banco del Valle Demo", "cuenta_beneficiario": "DEMO-GT-110-6025", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V013", "nombre": "Andrés Pérez", "pais": "México", "tipo": "Contratista", "categoria": "Contratistas", "moneda_factura": "USD", "cuenta_pago": "BANK-USD", "permite_conversion": false, "banco_beneficiario": "Banco Azteca Demo", "cuenta_beneficiario": "DEMO-MX-330-7718", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}, {"id": "V014", "nombre": "Buzón Seguro Ltda.", "pais": "Colombia", "tipo": "Proveedor", "categoria": "Software y hosting", "moneda_factura": "USD", "cuenta_pago": "BANK-USD", "permite_conversion": false, "banco_beneficiario": "Banco Cafetero Demo", "cuenta_beneficiario": "DEMO-CO-220-3150", "expediente_completo": true, "activo": true, "tipo_relacion": "recurrente"}]
-
-
-
-Contratos y cotizaciones: [{"id": "CT-V002", "proveedor_id": "V002", "concepto": "Desarrollo backend", "tipo": "mensual", "monto": 3200.0, "moneda": "USD", "estado": "vigente"}, {"id": "CT-V003", "proveedor_id": "V003", "concepto": "Desarrollo móvil", "tipo": "mensual", "monto": 2800.0, "moneda": "USD", "estado": "vigente"}, {"id": "CT-V004", "proveedor_id": "V004", "concepto": "QA y pruebas", "tipo": "mensual", "monto": 2400.0, "moneda": "USD", "estado": "vigente"}, {"id": "CT-V005", "proveedor_id": "V005", "concepto": "Hosting y servidores", "tipo": "mensual", "monto": 300, "moneda": "USD", "estado": "vigente"}, {"id": "CT-V006", "proveedor_id": "V006", "concepto": "Servicios contables mensuales", "tipo": "mensual", "monto": 6500.0, "moneda": "GTQ", "estado": "vigente"}, {"id": "COT-V001-014", "proveedor_id": "V001", "concepto": "Campaña de lanzamiento Q4", "tipo": "unica", "monto": 46200.0, "moneda": "GTQ", "estado": "vigente"}, {"id": "COT-V007-003", "proveedor_id": "V007", "concepto": "Revisión de contratos de contratistas", "tipo": "unica", "monto": 1500, "moneda": "USD", "estado": "vigente"}, {"id": "COT-V008-001", "proveedor_id": "V008", "concepto": "Migración a data warehouse", "tipo": "unica", "monto": 32000.0, "moneda": "USD", "estado": "vigente"}, {"id": "CT-V009", "proveedor_id": "V009", "concepto": "Diseño UI", "tipo": "mensual", "monto": 9240.0, "moneda": "GTQ", "estado": "vigente"}, {"id": "CT-V010", "proveedor_id": "V010", "concepto": "Licencias de software de desarrollo", "tipo": "mensual", "monto": 480.0, "moneda": "USD", "estado": "vigente"}, {"id": "CT-V011", "proveedor_id": "V011", "concepto": "Investigación UX", "tipo": "mensual", "monto": 2000.0, "moneda": "USD", "estado": "vigente"}, {"id": "CT-V012", "proveedor_id": "V012", "concepto": "Membresía de coworking", "tipo": "mensual", "monto": 3850.0, "moneda": "GTQ", "estado": "vigente"}, {"id": "CT-V013", "proveedor_id": "V013", "concepto": "Desarrollo frontend", "tipo": "mensual", "monto": 2600.0, "moneda": "USD", "estado": "vigente"}, {"id": "CT-V014", "proveedor_id": "V014", "concepto": "Correo corporativo", "tipo": "mensual", "monto": 240.0, "moneda": "USD", "estado": "vigente"}]
-
-
-
-Pagos previos de octubre 2026: [{"id": "PAG-0412", "proveedor_id": "V003", "factura": "CM-2026-09", "monto": 2800.0, "moneda": "USD", "monto_usd": 2800.0, "categoria": "Contratistas", "fecha_pago": "2026-10-02", "cuenta": "BANK-USD", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0413", "proveedor_id": "V002", "factura": "CC-MJC-009", "monto": 3200.0, "moneda": "USD", "monto_usd": 3200.0, "categoria": "Contratistas", "fecha_pago": "2026-10-02", "cuenta": "BANK-USD", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0414", "proveedor_id": "V004", "factura": "LF-009", "monto": 2400.0, "moneda": "USD", "monto_usd": 2400.0, "categoria": "Contratistas", "fecha_pago": "2026-10-02", "cuenta": "BANK-USD", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0415", "proveedor_id": "V009", "factura": "KO-009", "monto": 9240.0, "moneda": "GTQ", "monto_usd": 1200.0, "categoria": "Contratistas", "fecha_pago": "2026-10-02", "cuenta": "BANK-GTQ", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0418", "proveedor_id": "V010", "factura": "LV-2026-09", "monto": 480.0, "moneda": "USD", "monto_usd": 480.0, "categoria": "Software y hosting", "fecha_pago": "2026-10-02", "cuenta": "BANK-USD", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0420", "proveedor_id": "V005", "factura": "QC-2026-09", "monto": 300, "moneda": "USD", "monto_usd": 300.0, "categoria": "Software y hosting", "fecha_pago": "2026-10-02", "cuenta": "BANK-GTQ", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0421", "proveedor_id": "V014", "factura": "BS-1009", "monto": 240.0, "moneda": "USD", "monto_usd": 240.0, "categoria": "Software y hosting", "fecha_pago": "2026-10-09", "cuenta": "BANK-USD", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0425", "proveedor_id": "V001", "factura": "ED-0088", "monto": 11550.0, "moneda": "GTQ", "monto_usd": 1500.0, "categoria": "Marketing", "fecha_pago": "2026-10-09", "cuenta": "BANK-GTQ", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0430", "proveedor_id": "V006", "factura": "A-2231", "monto": 6500.0, "moneda": "GTQ", "monto_usd": 844.16, "categoria": "Servicios profesionales", "fecha_pago": "2026-10-09", "cuenta": "BANK-GTQ", "decidido_por": "Luis Samayoa (manual)"}, {"id": "PAG-0434", "proveedor_id": "V012", "factura": "SC-0917", "monto": 3850.0, "moneda": "GTQ", "monto_usd": 500.0, "categoria": "Oficina", "fecha_pago": "2026-10-02", "cuenta": "BANK-GTQ", "decidido_por": "Luis Samayoa (manual)"}]
-
-
-
-Al terminar, muestra en la página "Proveedores" una tabla simple con los proveedores cargados, para verificar que los datos quedaron bien.
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/f95ccaea-4dd3-4a8d-8d04-80fb8d618f8b).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```mermaid
+flowchart LR
+    A[Factura llega<br/>PDF · foto · chat] --> B[IA extrae los datos<br/>proveedor, número, monto, moneda, banco]
+    B --> C{Motor de reglas<br/>R0 a R10}
+    C -->|todo en regla| D[Aprobado<br/>se programa el viernes]
+    C -->|regla de presupuesto, monto pequeño| E[Pospuesto<br/>al siguiente periodo]
+    C -->|requiere criterio| F[Escalado<br/>a Finanzas o Contabilidad]
+    C -->|inválida o duplicada| G[Frenado]
+    F -->|persona aprueba o rechaza| D
+    D --> H[Tesorería<br/>persona libera fondos]
+    H --> I[Lote CSV para el banco]
 ```
+
+1. **Recepción.** Se sube un PDF o una foto, o se pega el texto de un mensaje de chat.
+2. **Extracción con IA.** Un modelo con visión lee el documento y devuelve datos estructurados con su nivel de confianza.
+3. **Decisión.** Un motor determinista evalúa las 11 reglas y decide.
+4. **Explicación.** Cada factura muestra su decisión, las reglas que fallaron con su detalle y una línea de tiempo auditable.
+5. **Aprobación humana.** Las escaladas esperan a una persona, que aprueba o rechaza con un comentario.
+6. **Tesorería.** La pantalla muestra saldo por cuenta, total a pagar el viernes y saldo después. Una persona libera los fondos y descarga el lote en CSV. Tesorería también puede hacer pagos parciales o postergar un pago.
+
+## Arquitectura: "agente con barandas"
+
+La regla de diseño principal: **la IA lee; las reglas deciden los pagos.**
+
+| Capa | Qué hace | Tecnología |
+|---|---|---|
+| Percepción | Lee PDF, imagen o texto y extrae campos con su confianza | Lovable AI Gateway (modelo multimodal) |
+| Decisión | Evalúa la política y decide | `src/lib/motorReglas.ts`: función pura `evaluarFactura(factura, contexto)` |
+| Contexto | Pagos previos, facturas ya procesadas, presupuesto consumido, saldos | `construirContexto()` lee la base de datos |
+| Persistencia y auditoría | Facturas, decisiones, eventos, lotes de pago | Lovable Cloud (Postgres + Storage) |
+| Interfaz | Tablero, reglas, proveedores, auditoría, banco de pruebas | React + TypeScript + Tailwind |
+
+**Por qué así:**
+
+- **Seguridad.** El motor solo puede responder PAGAR si **todas** las reglas pasan o no aplican. Un error de la IA no puede aprobar un pago: si la confianza de extracción es baja, la factura se escala.
+- **Explicabilidad.** Cada regla devuelve su resultado (OK / FALLA / NO_APLICA / NO_EVALUABLE) y un texto con los números que usó.
+- **Reproducibilidad.** La misma factura con el mismo contexto produce siempre la misma decisión.
+
+**Precedencia:** FRENAR > ESCALAR > POSTERGAR > PAGAR. La falla más severa define la decisión.
+
+### La IA, usada con intención
+
+En pagos, una IA que "decide" es un riesgo: puede alucinar, cambiar de criterio o ser manipulada con texto dentro de una factura. Por eso Contralor divide el trabajo:
+
+- **La IA hace lo que las reglas no pueden.** Lee documentos desordenados, como un PDF en inglés, una foto tomada por WhatsApp o un mensaje de Slack sin formato, y los convierte en datos estructurados con su nivel de confianza.
+- **Las reglas hacen lo que la IA no debe.** Deciden si se paga, siempre igual y con una explicación verificable.
+- **La confianza de la IA es una regla más (R0).** Si la lectura no es segura, la factura no se paga: se escala.
+- **Una instrucción escrita en la factura no cambia la decisión.** La IA solo extrae campos, y la decisión la toma el motor con la política de la empresa.
+
+## La política (editable en la pantalla "Reglas")
+
+| Regla | Control | Si falla |
+|---|---|---|
+| R0 | Confianza de extracción ≥ 0.70 | Escalar |
+| R1 | Documento válido y completo (emisor, receptor, número, fecha, monto, moneda) | Frenar |
+| R2 | Emitido a nombre de la empresa | Frenar |
+| R3 | No es duplicado (pagos previos y facturas ya registradas) | Frenar, con enlace al original |
+| R4 | Proveedor registrado, activo y con expediente completo | Escalar a Contabilidad |
+| R5 | Datos bancarios iguales a los registrados | Escalar |
+| R6 | Monto dentro de ±1 % del contrato o cotización (no aplica a compra directa) | Escalar |
+| R7 | Moneda compatible con la cuenta de pago, o conversión autorizada | Escalar |
+| R8 | Monto ≤ US$ 25,000 | Escalar a Finanzas |
+| R9 | Presupuesto disponible en la categoría | ≤ US$ 5,000: posponer al primer viernes del mes siguiente. Si es mayor: escalar |
+| R10 | Saldo suficiente en la cuenta de pago | Escalar |
+
+**Calendario de pagos:** si la factura se recibe lunes o martes, se paga ese viernes. Si se recibe de miércoles en adelante, se paga el viernes siguiente.
+
+## Set de pruebas y criterios del reto
+
+La app incluye 18 casos ficticios:
+
+- 15 PDF;
+- 1 foto de WhatsApp;
+- 2 mensajes de chat.
+
+Cubren los riesgos reales de cuentas por pagar: un duplicado enviado por otro canal, una factura ya pagada, el sobreprecio contra el contrato, un proveedor no registrado, el tope por pago, el presupuesto agotado, una moneda sin conversión autorizada, un cambio de cuenta bancaria, una factura emitida a otra entidad y un mensaje sin documento.
+
+| Decisión | Facturas |
+|---|---|
+| Aprobado | 7 |
+| Frenado | 4 |
+| Escalado | 6 |
+| Pospuesto | 1 |
+
+La pantalla **Banco de pruebas** compara cada decisión del motor con la esperada y mide los criterios del reto:
+
+- **Coincidencias:** 18/18.
+- **Seguridad:** 0 pagos fuera de reglas.
+- **Autonomía:** 67 %. Son 12 de 18 facturas resueltas sin intervención; las 6 restantes requieren criterio humano por política.
+- **Doble carga:** cargar el set dos veces no genera pagos duplicados ni sobregira presupuestos.
+- **Flujo real:** los 18 casos se procesan por el mismo camino que "Subir factura".
+
+## Cómo probarlo
+
+1. Abre la demo y ve a **Banco de pruebas → Reiniciar datos demo → Cargar los 18 casos en la bandeja**.
+2. En el **Tablero**, revisa los pendientes de aprobación, Tesorería y el calendario de pagos.
+3. Abre cualquier factura para ver el documento original, los datos extraídos, la decisión, las reglas que fallaron y la línea de tiempo.
+4. Aprueba o rechaza una factura escalada. En Tesorería, prueba **Pago parcial**, **Postergar** o **Liberar fondos**.
+5. Edita una regla en **Reglas** (por ejemplo, baja el tope por pago) y vuelve a correr el Banco de pruebas.
+6. En **Subir factura**, sube un PDF o una foto, o pega un mensaje de chat.
+
+## Cómo lo adoptaría una empresa real
+
+Contralor está pensado para las restricciones de una empresa mediana en Centroamérica:
+
+- **No reemplaza el ERP ni el banco.** Se coloca antes del pago. Recibe las facturas como llegan hoy y entrega un lote CSV que tesorería sube a la banca en línea.
+- **Las reglas las configura finanzas, sin programar.** Topes, tolerancias, presupuestos por categoría, cuentas y proveedores se editan en pantalla. Cada cambio crea una nueva versión de la política.
+- **Respeta la segregación de funciones que pide un auditor:**
+  - el agente prepara;
+  - Contabilidad atiende los proveedores nuevos;
+  - Finanzas aprueba las excepciones;
+  - solo una persona libera fondos.
+- **Adopción gradual:**
+  1. **Modo sombra** (2 a 4 semanas): el agente propone y la persona confirma. Se mide la coincidencia con el Banco de pruebas.
+  2. **Pagos pequeños y recurrentes** en automático.
+  3. **Ampliar los topes** según la confianza ganada.
+- **Bajo costo:** usa una llamada de IA por factura, solo para leerla. La decisión no consume IA.
+- **Auditoría lista:** cada factura conserva el documento original, los datos extraídos, la versión de la política, la traza de reglas y quién aprobó qué y cuándo.
+
+## Seguridad y datos
+
+- Sin datos reales de personas ni empresas.
+- Las llaves de API se guardan como *secrets* del backend. Nunca están en el código.
+- Las decisiones humanas quedan registradas con usuario, fecha y comentario. Solo una persona puede liberar fondos.
+- **Acceso abierto, a propósito.** El demo no tiene inicio de sesión para que el jurado entre directo, y quien actúa se elige en un selector. En producción se activan autenticación, roles (Contabilidad, Finanzas, Tesorería) y políticas de acceso por fila en la base de datos.
+
+## Limitaciones y siguientes pasos
+
+- Leer directamente la factura electrónica FEL (XML de SAT Guatemala) y validar su autorización.
+- Integrar correo y WhatsApp reales como canales de entrada.
+- Conectar la banca en línea para ejecutar el lote; hoy se exporta en CSV.
+- Hacer que la IA redacte el mensaje al proveedor cuando una factura se frena o se escala.
+- Manejar más monedas y tipos de cambio en línea.
+
+---
+
+Hecho por **Luis Fernando Samayoa (Luisfer)**, analista de planificación financiera y contador, en Guatemala. Construido con Lovable.
