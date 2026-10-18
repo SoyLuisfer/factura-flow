@@ -99,6 +99,13 @@
       "when": 1792296028879,
       "tag": "0013_corregir_alias_y_proteger_decisiones_liberadas",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792296073865,
+      "tag": "0014_corregir_referencia_membresia_lote",
+      "breakpoints": true
     }
   ]
 }
