@@ -34,7 +34,7 @@
 - [x] Pruebas nuevas (compra directa aprueba, cotización usada escala) y verificación 18/18, Seguridad 0, Autonomía 67%, Doble carga OK
 
 ## UX para el pitch (solo interfaz, sin escrituras de datos)
-- [ ] Atención pendiente, indicadores, pestañas y filas de tablero.
-- [ ] Tesorería, autoría humana, extracción y línea de tiempo.
-- [ ] Progreso de subida, skeletons y revisión desktop/celular.
-- [ ] Verificar regresiones sin reiniciar, cargar ni escribir datos.
+- [x] Atención pendiente, indicadores, pestañas y filas de tablero.
+- [x] Tesorería, autoría humana, extracción y línea de tiempo.
+- [x] Progreso de subida, skeletons y revisión desktop/celular.
+- [x] 74 pruebas y métricas en memoria: 18/18, Seguridad 0, Autonomía 67%, Doble carga OK; Flujo real no reejecutado porque escribe datos temporales.
