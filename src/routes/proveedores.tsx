@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { leerHistorialProveedor, tieneHistorialProtegido, type HistorialProveedor } from "@/lib/bajaProveedor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +24,8 @@ export const Route = createFileRoute("/proveedores")({
       { name: "description", content: "Proveedores y contratistas registrados de Andes Labs." },
       { property: "og:title", content: "Proveedores — Contralor" },
       { property: "og:description", content: "Proveedores y contratistas registrados." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   loader: ({ context }) =>
@@ -87,6 +91,46 @@ function Proveedores() {
   const [editando, setEditando] = useState<Proveedor | null | "nuevo">(null);
   const [form, setForm] = useState<FormState | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [baja, setBaja] = useState<{ proveedor: Proveedor; historial: HistorialProveedor } | null>(null);
+  const [usuarioBaja, setUsuarioBaja] = useState("");
+  const [procesandoBaja, setProcesandoBaja] = useState(false);
+  const [consultandoBaja, setConsultandoBaja] = useState<string | null>(null);
+
+  async function abrirBaja(proveedor: Proveedor) {
+    setConsultandoBaja(proveedor.id);
+    try {
+      const { data, error } = await supabase.rpc("historial_proveedor", { p_id: proveedor.id });
+      if (error) throw error;
+      setBaja({ proveedor, historial: leerHistorialProveedor(data) });
+      setUsuarioBaja("");
+    } catch {
+      toast.error("No se pudo consultar el historial del proveedor. Intenta de nuevo.");
+    } finally {
+      setConsultandoBaja(null);
+    }
+  }
+
+  async function confirmarBaja() {
+    if (!baja || !usuarioBaja || procesandoBaja) return;
+    setProcesandoBaja(true);
+    const accion = tieneHistorialProtegido(baja.historial) ? "desactivar" : "eliminar";
+    try {
+      const { error } = await supabase.rpc("gestionar_baja_proveedor", { p_id: baja.proveedor.id, p_actor: usuarioBaja, p_accion: accion });
+      if (error) throw error;
+      await qc.invalidateQueries();
+      setBaja(null);
+      toast.success(accion === "eliminar" ? "Proveedor eliminado" : "Proveedor desactivado");
+    } catch (e) {
+      if (e && typeof e === "object" && "message" in e && String(e.message).includes("PROVEEDOR_CON_HISTORIAL")) {
+        toast.error("El proveedor tiene historial y no se puede eliminar. Puedes desactivarlo.");
+        await abrirBaja(baja.proveedor);
+      } else {
+        toast.error("No se pudo completar el cambio. No se eliminó el proveedor. Intenta de nuevo.");
+      }
+    } finally {
+      setProcesandoBaja(false);
+    }
+  }
 
   const contratoDe = (id: string) => contratos.find((c) => c.proveedor_id === id) ?? null;
 
@@ -242,9 +286,14 @@ function Proveedores() {
                   <TableCell>{p.expediente_completo ? <Badge variant="secondary">Completo</Badge> : <Badge variant="destructive">Incompleto</Badge>}</TableCell>
                   <TableCell>{p.activo ? <Badge>Activo</Badge> : <Badge variant="outline">Inactivo</Badge>}</TableCell>
                   <TableCell>
+                     <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" onClick={() => abrir(p)} aria-label={`Editar ${p.nombre}`}>
                       <Pencil className="h-4 w-4" />
                     </Button>
+                     <Button variant="ghost" size="icon" className="text-destructive/70 hover:bg-destructive/10 hover:text-destructive" disabled={consultandoBaja !== null} onClick={() => abrirBaja(p)} aria-label={`Eliminar ${p.nombre} (${p.id})`} title="Eliminar proveedor">
+                       <Trash2 className="h-4 w-4" />
+                     </Button>
+                     </div>
                   </TableCell>
                 </TableRow>
               );
@@ -252,6 +301,33 @@ function Proveedores() {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={baja !== null} onOpenChange={(open) => { if (!open && !procesandoBaja) setBaja(null); }}>
+        <AlertDialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{baja && tieneHistorialProtegido(baja.historial) ? "Proveedor con historial" : `¿Eliminar el proveedor ${baja?.proveedor.nombre ?? ""} (${baja?.proveedor.id ?? ""})?`}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {baja && tieneHistorialProtegido(baja.historial)
+                ? `Este proveedor tiene historial (${baja.historial.facturas} facturas / ${baja.historial.pagos} pagos). Para conservar la pista de auditoría no se puede eliminar; puedes desactivarlo.`
+                : "Esta acción no se puede deshacer."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {baja && !tieneHistorialProtegido(baja.historial) && baja.historial.contratos > 0 && <p className="text-sm text-muted-foreground">También se eliminarán sus contratos o cotizaciones ({baja.historial.contratos}).</p>}
+          <div className="space-y-2">
+            <Label htmlFor="usuario-baja">Usuario</Label>
+            <Select value={usuarioBaja} onValueChange={setUsuarioBaja} disabled={procesandoBaja}>
+              <SelectTrigger id="usuario-baja"><SelectValue placeholder="Seleccionar usuario" /></SelectTrigger>
+              <SelectContent>{USUARIOS_DEMO.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={procesandoBaja}>Cancelar</AlertDialogCancel>
+            <Button variant={baja && tieneHistorialProtegido(baja.historial) ? "default" : "destructive"} disabled={!usuarioBaja || procesandoBaja} onClick={confirmarBaja}>
+              {procesandoBaja ? "Procesando…" : baja && tieneHistorialProtegido(baja.historial) ? "Desactivar" : "Eliminar"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={editando !== null} onOpenChange={(open) => { if (!open) { setEditando(null); setForm(null); } }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
