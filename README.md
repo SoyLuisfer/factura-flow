@@ -14,7 +14,7 @@ Decide siempre dentro de las reglas que la empresa define, y cada decisión qued
 > Empresa demo: **Pollos Hermanos, S. A.** (Guatemala), ficticia. Todos los nombres, cuentas, NIT y montos son inventados. No se mueve dinero real.
 
 - **Demo:** https://contralor.lovable.app
-- **Video:** <URL del video>
+- **Video:** https://www.loom.com/share/01741e8493d74a60846b849bdd8402ea
 
 ---
 
