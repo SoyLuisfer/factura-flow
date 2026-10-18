@@ -3,7 +3,7 @@ BEGIN;
 DO $$
 DECLARE ids uuid[]; lote text; d public.decisiones%ROWTYPE; antes jsonb; eventos integer;
 BEGIN
- SELECT array_agg(f.id ORDER BY f.id) INTO ids FROM public.facturas f WHERE f.codigo IN ('F01','F10');
+ SELECT array_agg(f.id ORDER BY f.id) INTO ids FROM public.facturas f WHERE f.codigo IN ('F01','F02');
  IF cardinality(ids)<>2 THEN RAISE EXCEPTION 'Requires 18 demo cases'; END IF;
  SELECT * INTO d FROM public.decisiones WHERE factura_id=ids[1] ORDER BY decidido_en DESC LIMIT 1;
  antes:=to_jsonb(d);
