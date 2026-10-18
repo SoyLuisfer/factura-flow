@@ -270,7 +270,11 @@ function Proveedores() {
                     <div className="font-mono text-muted-foreground">{p.cuenta_beneficiario}</div>
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs tabular-nums">
-                    {c ? `${fmtMonto(c.monto, c.moneda)} · ${c.tipo}` : "—"}
+                    {p.tipo_relacion === "compra_directa" || !c
+                      ? "Compra directa"
+                      : p.tipo_relacion === "recurrente"
+                        ? `Recurrente · ${fmtMonto(c.monto, c.moneda)}`
+                        : `Cotización · ${fmtMonto(c.monto, c.moneda)} · ${c.estado}`}
                   </TableCell>
                   <TableCell>{p.expediente_completo ? <Badge variant="secondary">Completo</Badge> : <Badge variant="destructive">Incompleto</Badge>}</TableCell>
                   <TableCell>{p.activo ? <Badge>Activo</Badge> : <Badge variant="outline">Inactivo</Badge>}</TableCell>
@@ -393,33 +397,42 @@ function Proveedores() {
               </div>
 
               <div className="col-span-2 mt-2 rounded border p-3">
-                <div className="text-sm font-medium">Contrato o cotización</div>
+                <div className="text-sm font-medium">Tipo de relación</div>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div className="col-span-2">
-                    <Label className="text-xs text-muted-foreground">Concepto</Label>
-                    <Input className="mt-1" value={form.contrato_concepto} onChange={(e) => setForm({ ...form, contrato_concepto: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Tipo</Label>
-                    <Select value={form.contrato_tipo} onValueChange={(v) => setForm({ ...form, contrato_tipo: v })}>
-                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <Select value={form.tipo_relacion} onValueChange={(v) => setForm({ ...form, tipo_relacion: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="mensual">Contrato mensual</SelectItem>
-                        <SelectItem value="unica">Cotización / pago único</SelectItem>
+                        <SelectItem value="compra_directa">Compra directa (sin contrato)</SelectItem>
+                        <SelectItem value="recurrente">Contrato recurrente</SelectItem>
+                        <SelectItem value="cotizacion">Cotización</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {form.tipo_relacion === "compra_directa" && "Compras puntuales sin contrato ni cotización; la regla R6 no aplica."}
+                      {form.tipo_relacion === "recurrente" && "Servicios o contratistas que cobran cada periodo; se compara contra el monto del contrato."}
+                      {form.tipo_relacion === "cotizacion" && "Compra puntual acordada; la cotización se usa una sola vez."}
+                    </p>
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Moneda</Label>
-                    <Select value={form.contrato_moneda} onValueChange={(v) => setForm({ ...form, contrato_moneda: v })}>
-                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>{["USD", "GTQ", "COP", "MXN", "ARS"].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Monto</Label>
-                    <Input className="mt-1 font-mono" value={form.contrato_monto} inputMode="decimal" onChange={(e) => setForm({ ...form, contrato_monto: e.target.value })} />
-                  </div>
+                  {form.tipo_relacion !== "compra_directa" && (
+                    <>
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">Concepto</Label>
+                        <Input className="mt-1" value={form.contrato_concepto} onChange={(e) => setForm({ ...form, contrato_concepto: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Moneda</Label>
+                        <Select value={form.contrato_moneda} onValueChange={(v) => setForm({ ...form, contrato_moneda: v })}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>{["USD", "GTQ", "COP", "MXN", "ARS"].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Monto</Label>
+                        <Input className="mt-1 font-mono" value={form.contrato_monto} inputMode="decimal" onChange={(e) => setForm({ ...form, contrato_monto: e.target.value })} />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
