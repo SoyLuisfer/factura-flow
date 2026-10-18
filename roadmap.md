@@ -1,8 +1,8 @@
 # Proveedores: eliminación segura
 ## Liberación humana de fondos
-- [ ] Lotes atómicos, bloqueo de duplicados, saldos y reinicio seguro.
-- [ ] Diálogo por cuenta, badges, calendario y descarga CSV.
-- [ ] Pruebas y flujos completos; dejar 18 casos sin lotes.
+- [x] Lotes atómicos, bloqueo de duplicados, saldos y reinicio seguro.
+- [x] Diálogo por cuenta, badges, calendario y descarga CSV.
+- [x] Pruebas y flujos completos; dejar 18 casos sin lotes.
 ## Diseño global y tesorería
 - [x] Lato y formato único de importes, porcentajes, tipos de cambio y formularios/CSV.
 - [x] Tesorería y calendario en tablero; presupuesto con barras en Reglas.
