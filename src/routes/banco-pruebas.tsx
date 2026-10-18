@@ -247,7 +247,7 @@ function BancoPruebas() {
 
   return (
     <div className="px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Banco de pruebas</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Banco de pruebas</h1>
       <p className="mt-2 text-muted-foreground">
         {total} casos con datos ya extraídos (confianza 1) y decisión esperada. El motor corre en memoria con los datos demo, sin tocar la base.
       </p>
@@ -269,19 +269,19 @@ function BancoPruebas() {
           <div className="mt-8 grid gap-4 sm:grid-cols-4">
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Coincidencias</div>
-              <div className="mt-1 text-2xl font-semibold">{coincidencias}/{total}</div>
+              <div className="mt-1 text-2xl font-bold">{coincidencias}/{total}</div>
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Seguridad (pagos fuera de reglas)</div>
-              <div className={`mt-1 text-2xl font-semibold ${inseguros === 0 ? "text-decision-pagar" : "text-decision-frenar"}`}>{inseguros}</div>
+              <div className={`mt-1 text-2xl font-bold ${inseguros === 0 ? "text-decision-pagar" : "text-decision-frenar"}`}>{inseguros}</div>
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Autonomía</div>
-              <div className="mt-1 text-2xl font-semibold">{formatearPorcentaje(Math.round((autonomos / total) * 100))}</div>
+              <div className="mt-1 text-2xl font-bold">{formatearPorcentaje(Math.round((autonomos / total) * 100))}</div>
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Doble carga</div>
-              <div className={`mt-1 text-2xl font-semibold ${dobleCarga?.ok ? "text-decision-pagar" : "text-decision-frenar"}`}>
+              <div className={`mt-1 text-2xl font-bold ${dobleCarga?.ok ? "text-decision-pagar" : "text-decision-frenar"}`}>
                 {dobleCarga ? (dobleCarga.ok ? "OK" : "FALLA") : "—"}
               </div>
               {dobleCarga && <div className="mt-1 text-xs text-muted-foreground">{dobleCarga.detalle}</div>}
@@ -313,10 +313,10 @@ function BancoPruebas() {
                     <Fragment key={caso.codigo}>
                       <TableRow className="cursor-pointer" onClick={() => toggle(caso.codigo)}>
                         <TableCell>{abierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
-                        <TableCell className="font-mono text-xs">{caso.codigo}</TableCell>
+                        <TableCell className="tabular-nums text-xs">{caso.codigo}</TableCell>
                         <TableCell>{caso.canal}</TableCell>
                         <TableCell className="max-w-48 truncate">{caso.emisor}</TableCell>
-                        <TableCell className="text-right font-mono text-xs">
+                        <TableCell className="text-right tabular-nums text-xs">
                           {formatearMonto(caso.monto, caso.moneda)}
                         </TableCell>
                         <TableCell><Badge variant={VARIANTES_DECISION[caso.esperado]}>{ETIQUETA_DECISION[caso.esperado as TipoDecision]}</Badge></TableCell>
@@ -343,7 +343,7 @@ function BancoPruebas() {
 
       {!resultados && (
         <div className="mt-8 rounded-lg border bg-card p-6">
-          <h2 className="font-medium">Datos demo</h2>
+          <h2 className="font-bold">Datos demo</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             «Reiniciar datos demo» borra facturas, decisiones y eventos, y vuelve a cargar empresa, cuentas, política v1, tipos de cambio, proveedores, contratos y pagos previos.
           </p>

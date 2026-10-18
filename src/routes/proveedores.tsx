@@ -236,7 +236,7 @@ function Proveedores() {
     <div className="px-6 py-8">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Proveedores</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Proveedores</h1>
           <p className="mt-1 text-sm text-muted-foreground">{proveedores.length} proveedores registrados.</p>
         </div>
         <Button onClick={() => abrir(null)}>
@@ -260,18 +260,18 @@ function Proveedores() {
               const c = contratoDe(p.id);
               return (
                 <TableRow key={p.id}>
-                  <TableCell className="font-mono text-xs">{p.id}</TableCell>
-                  <TableCell className="font-medium">{p.nombre}</TableCell>
+                  <TableCell className="tabular-nums text-xs">{p.id}</TableCell>
+                  <TableCell className="font-bold">{p.nombre}</TableCell>
                   <TableCell>{p.pais}</TableCell>
                   <TableCell>{p.categoria}</TableCell>
-                  <TableCell className="font-mono text-xs">{p.moneda_factura}</TableCell>
-                  <TableCell className="font-mono text-xs">{p.cuenta_pago}</TableCell>
+                  <TableCell className="tabular-nums text-xs">{p.moneda_factura}</TableCell>
+                  <TableCell className="tabular-nums text-xs">{p.cuenta_pago}</TableCell>
                   <TableCell>{p.permite_conversion ? "Sí" : "No"}</TableCell>
                   <TableCell className="text-xs">
                     <div>{p.banco_beneficiario}</div>
-                    <div className="font-mono text-muted-foreground">{p.cuenta_beneficiario}</div>
+                    <div className="tabular-nums text-muted-foreground">{p.cuenta_beneficiario}</div>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-xs tabular-nums">
+                  <TableCell className="text-right tabular-nums text-xs tabular-nums">
                     {p.tipo_relacion === "compra_directa" || !c
                       ? "Compra directa"
                       : p.tipo_relacion === "recurrente"
@@ -333,7 +333,7 @@ function Proveedores() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>ID</Label>
-                <Input className="mt-1 font-mono" value={form.id} disabled />
+                <Input className="mt-1 tabular-nums" value={form.id} disabled />
               </div>
               <div>
                 <Label>Nombre</Label>
@@ -381,7 +381,7 @@ function Proveedores() {
               </div>
               <div>
                 <Label>Cuenta del beneficiario</Label>
-                <Input className="mt-1 font-mono" value={form.cuenta_beneficiario} onChange={(e) => setForm({ ...form, cuenta_beneficiario: e.target.value })} />
+                <Input className="mt-1 tabular-nums" value={form.cuenta_beneficiario} onChange={(e) => setForm({ ...form, cuenta_beneficiario: e.target.value })} />
               </div>
               <div className="col-span-2 flex flex-wrap gap-6">
                 <label className="flex items-center gap-2 text-sm">
@@ -399,7 +399,7 @@ function Proveedores() {
               </div>
 
               <div className="col-span-2 mt-2 rounded border p-3">
-                <div className="text-sm font-medium">Tipo de relación</div>
+                <div className="text-sm font-bold">Tipo de relación</div>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div className="col-span-2">
                     <Select value={form.tipo_relacion} onValueChange={(v) => setForm({ ...form, tipo_relacion: v })}>

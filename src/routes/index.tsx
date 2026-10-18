@@ -44,10 +44,8 @@ function Tablero() {
   const periodo = new Date().toISOString().slice(0, 7);
 
   const porDecision = (d: string) => decisiones.filter((x) => x.decision === d);
-  const pagar = porDecision("PAGAR");
   const escalar = decisiones.filter((x) => x.estado === "pendiente_aprobacion");
   const frenar = porDecision("FRENAR");
-  const postergar = porDecision("POSTERGAR");
 
   const decididasAgente = decisiones.filter((x) => x.decidido_por === "Agente (automático)").length;
   const autonomia = decisiones.length > 0 ? Math.round((decididasAgente / decisiones.length) * 100) : 0;
@@ -67,7 +65,7 @@ function Tablero() {
     <div className="px-6 py-8">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{empresa?.razon_social ?? "Pollos Hermanos, S. A."}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{empresa?.razon_social ?? "Pollos Hermanos, S. A."}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Política {maestros.politica.version} · Periodo {periodo}
           </p>
@@ -80,7 +78,7 @@ function Tablero() {
         <Indicador titulo="Autonomía" valor={formatearPorcentaje(autonomia)} detalle={`${decididasAgente} de ${decisiones.length} sin intervención`} />
         <div className="rounded-lg border bg-card p-4">
           <div className="text-sm text-muted-foreground">Pagos fuera de reglas</div>
-          <div className="mt-1 text-2xl font-semibold text-decision-pagar">0</div>
+          <div className="mt-1 text-2xl font-bold text-decision-pagar">0</div>
         </div>
         <Indicador titulo="Pendientes de aprobación" valor={String(escalar.length)} />
       </div>
@@ -182,14 +180,14 @@ function Indicador({ titulo, valor, detalle }: { titulo: string; valor: string; 
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="text-sm text-muted-foreground">{titulo}</div>
-      <div className="mt-1 text-2xl font-semibold">{valor}</div>
+      <div className="mt-1 text-2xl font-bold">{valor}</div>
       {detalle && <div className="mt-0.5 text-xs text-muted-foreground">{detalle}</div>}
     </div>
   );
 }
 
 function CeldaProveedor({ d }: { d: DecisionConRelaciones }) {
-  return <TableCell className="font-medium">{d.proveedor?.nombre ?? d.factura?.emisor ?? "—"}</TableCell>;
+  return <TableCell className="font-bold">{d.proveedor?.nombre ?? d.factura?.emisor ?? "—"}</TableCell>;
 }
 
 function CeldaMonto({ d }: { d: DecisionConRelaciones }) {

@@ -57,7 +57,7 @@ function DetalleFactura() {
         {/* Izquierda: documento original */}
         <div className="rounded-lg border bg-card">
           <div className="border-b px-4 py-3">
-            <h2 className="font-medium">Documento original</h2>
+            <h2 className="font-bold">Documento original</h2>
             <p className="text-xs text-muted-foreground">
               {factura.nombre_archivo ?? `Mensaje por ${factura.canal ?? "canal desconocido"}`} · Recibida {fmtFechaHora(factura.fecha_recepcion)}
             </p>
@@ -71,7 +71,7 @@ function DetalleFactura() {
         <div className="space-y-6">
           <div className="rounded-lg border bg-card p-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-medium">Datos extraídos</h2>
+              <h2 className="font-bold">Datos extraídos</h2>
               <CorreccionDialog factura={factura} />
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -106,12 +106,12 @@ function DetalleFactura() {
               </dl>
               {decision.ajuste != null && (
                 <div className="mt-3 rounded bg-muted p-3 text-xs">
-                  <span className="font-medium">Ajuste aplicado:</span>{" "}
-                  <span className="font-mono">{JSON.stringify(decision.ajuste)}</span>
+                  <span className="font-bold">Ajuste aplicado:</span>{" "}
+                  <span className="tabular-nums">{JSON.stringify(decision.ajuste)}</span>
                 </div>
               )}
 
-              <h3 className="mt-5 font-medium">¿Por qué?</h3>
+              <h3 className="mt-5 font-bold">¿Por qué?</h3>
               <div className="mt-2">
                 <PanelControles controles={decision.controles as unknown as Control[]} />
               </div>
@@ -124,7 +124,7 @@ function DetalleFactura() {
           )}
 
           <div className="rounded-lg border bg-card p-4">
-            <h2 className="font-medium">Línea de tiempo</h2>
+            <h2 className="font-bold">Línea de tiempo</h2>
             {eventos.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">Sin eventos registrados.</p>
             ) : (
@@ -132,7 +132,7 @@ function DetalleFactura() {
                 {eventos.map((e) => (
                   <li key={e.id} className="relative text-sm">
                     <span className="absolute -left-[1.35rem] top-1.5 h-2 w-2 rounded-full bg-primary" />
-                    <div className="font-medium">{e.evento}</div>
+                    <div className="font-bold">{e.evento}</div>
                     <div className="text-xs text-muted-foreground">
                       {fmtFechaHora(e.fecha_hora)} · {e.actor}
                     </div>
@@ -297,7 +297,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
 
   return (
     <div className="rounded-lg border border-decision-escalar bg-card p-4">
-      <h2 className="font-medium">Aprobación humana</h2>
+      <h2 className="font-bold">Aprobación humana</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         Esta decisión quedó escalada{decision.escalar_a ? ` a ${decision.escalar_a}` : ""}. La decisión original del agente y su traza se conservan.
       </p>
@@ -353,7 +353,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
               </div>
             </div>
             {montoConvertido != null && cuentaDest && (
-              <p className="rounded bg-muted p-2 font-mono text-xs">
+              <p className="rounded bg-muted p-2 tabular-nums text-xs">
                 {fmtMonto(factura.monto, factura.moneda)} → {fmtMonto(montoConvertido, cuentaDest.moneda)} desde {cuentaElegida}
               </p>
             )}
@@ -416,7 +416,7 @@ function VisorDocumento({ factura }: { factura: Factura }) {
   }
   if (factura.texto_original) {
     return (
-      <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-muted p-4 font-mono text-xs leading-relaxed">
+      <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-muted p-4 tabular-nums text-xs leading-relaxed">
         {factura.texto_original}
       </pre>
     );

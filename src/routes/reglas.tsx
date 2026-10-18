@@ -165,16 +165,16 @@ function Reglas() {
 
   return (
     <div className="px-6 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Reglas de la política</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Reglas de la política</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Política vigente: <span className="font-medium text-foreground">{vigente.version}</span>. Las versiones nunca se sobrescriben: guardar crea una nueva.
+        Política vigente: <span className="font-bold text-foreground">{vigente.version}</span>. Las versiones nunca se sobrescriben: guardar crea una nueva.
       </p>
 
       <PresupuestoCategorias parametros={p} decisiones={decisiones} pagosPrevios={maestros.pagosPrevios} />
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* Formulario */}
         <div className="rounded-lg border bg-card p-5">
-          <h2 className="font-medium">Parámetros vigentes</h2>
+          <h2 className="font-bold">Parámetros vigentes</h2>
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <Label>Receptor válido (nombre exacto de la empresa)</Label>
@@ -186,7 +186,7 @@ function Reglas() {
             </div>
             <div>
               <Label>Tolerancia contra contrato (%)</Label>
-              <Input className="mt-1 font-mono" value={tolerancia} onChange={(e) => setTolerancia(e.target.value)} inputMode="decimal" />
+              <Input className="mt-1 tabular-nums" value={tolerancia} onChange={(e) => setTolerancia(e.target.value)} inputMode="decimal" />
             </div>
             <div>
               <Label>Límite de postergación automática (USD)</Label>
@@ -219,7 +219,7 @@ function Reglas() {
             </div>
           </div>
 
-          <h3 className="mt-5 text-sm font-medium">Presupuesto por categoría (USD / mes)</h3>
+          <h3 className="mt-5 text-sm font-bold">Presupuesto por categoría (USD / mes)</h3>
           <div className="mt-2 grid grid-cols-2 gap-3">
             {Object.entries(presupuestos).map(([cat, val]) => (
               <div key={cat}>
@@ -230,7 +230,7 @@ function Reglas() {
             ))}
           </div>
 
-          <h3 className="mt-5 text-sm font-medium">Tipos de cambio (unidades por USD)</h3>
+          <h3 className="mt-5 text-sm font-bold">Tipos de cambio (unidades por USD)</h3>
           <div className="mt-2 grid grid-cols-2 gap-3">
             {Object.entries(tasas).map(([moneda, val]) => (
               <div key={moneda}>
@@ -256,12 +256,12 @@ function Reglas() {
         {/* Explicación + historial */}
         <div className="space-y-6">
           <div className="rounded-lg border bg-card p-5">
-            <h2 className="font-medium">Qué revisa el motor, en orden</h2>
+            <h2 className="font-bold">Qué revisa el motor, en orden</h2>
             <ol className="mt-3 space-y-3">
               {EXPLICACION_REGLAS.map((r) => (
                 <li key={r.regla} className="text-sm">
-                  <span className="font-mono text-xs font-semibold">{r.regla}</span>{" "}
-                  <span className="font-medium">{r.nombre}.</span>{" "}
+                  <span className="tabular-nums text-xs font-bold">{r.regla}</span>{" "}
+                  <span className="font-bold">{r.nombre}.</span>{" "}
                   <span className="text-muted-foreground">{r.que}</span>{" "}
                   <span className="text-xs text-muted-foreground">Si falla: {r.siFalla}</span>
                 </li>
@@ -270,20 +270,20 @@ function Reglas() {
           </div>
 
           <div className="rounded-lg border bg-card p-5">
-            <h2 className="font-medium">Historial de versiones</h2>
+            <h2 className="font-bold">Historial de versiones</h2>
             <ul className="mt-3 space-y-3">
               {[...politicas].reverse().map((pol) => {
                 const pp = pol.parametros as unknown as ParametrosPolitica;
                 return (
                   <li key={pol.id} className="rounded border p-3 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono font-semibold">{pol.version}</span>
+                      <span className="tabular-nums font-bold">{pol.version}</span>
                       {pol.vigente && <span className="rounded bg-decision-pagar px-2 py-0.5 text-xs text-decision-pagar-foreground">Vigente</span>}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       Creada por {pol.creada_por} · {fmtFechaHora(pol.creada_en)}
                     </div>
-                    <div className="mt-1 font-mono text-xs text-muted-foreground">
+                    <div className="mt-1 tabular-nums text-xs text-muted-foreground">
                       Tope {fmtMonto(pp.tope_por_pago_usd, "USD")} · tolerancia {formatearPorcentaje(pp.tolerancia_contrato_pct)} · postergación máx {fmtMonto(pp.postergacion_automatica_max_usd, "USD")}
                     </div>
                   </li>

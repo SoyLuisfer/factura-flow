@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as BancoPruebasRouteImport } from './routes/banco-pruebas'
+import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
 import { Route as ProveedoresRouteImport } from './routes/proveedores'
 import { Route as ReglasRouteImport } from './routes/reglas'
 import { Route as SubirRouteImport } from './routes/subir'
@@ -30,6 +31,11 @@ const AuditoriaRoute = AuditoriaRouteImport.update({
 const BancoPruebasRoute = BancoPruebasRouteImport.update({
   id: '/banco-pruebas',
   path: '/banco-pruebas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComoFuncionaRoute = ComoFuncionaRouteImport.update({
+  id: '/como-funciona',
+  path: '/como-funciona',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProveedoresRoute = ProveedoresRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
   '/banco-pruebas': typeof BancoPruebasRoute
+  '/como-funciona': typeof ComoFuncionaRoute
   '/proveedores': typeof ProveedoresRoute
   '/reglas': typeof ReglasRoute
   '/subir': typeof SubirRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
   '/banco-pruebas': typeof BancoPruebasRoute
+  '/como-funciona': typeof ComoFuncionaRoute
   '/proveedores': typeof ProveedoresRoute
   '/reglas': typeof ReglasRoute
   '/subir': typeof SubirRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auditoria': typeof AuditoriaRoute
   '/banco-pruebas': typeof BancoPruebasRoute
+  '/como-funciona': typeof ComoFuncionaRoute
   '/proveedores': typeof ProveedoresRoute
   '/reglas': typeof ReglasRoute
   '/subir': typeof SubirRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auditoria'
     | '/banco-pruebas'
+    | '/como-funciona'
     | '/proveedores'
     | '/reglas'
     | '/subir'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auditoria'
     | '/banco-pruebas'
+    | '/como-funciona'
     | '/proveedores'
     | '/reglas'
     | '/subir'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auditoria'
     | '/banco-pruebas'
+    | '/como-funciona'
     | '/proveedores'
     | '/reglas'
     | '/subir'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditoriaRoute: typeof AuditoriaRoute
   BancoPruebasRoute: typeof BancoPruebasRoute
+  ComoFuncionaRoute: typeof ComoFuncionaRoute
   ProveedoresRoute: typeof ProveedoresRoute
   ReglasRoute: typeof ReglasRoute
   SubirRoute: typeof SubirRoute
@@ -142,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/banco-pruebas'
       fullPath: '/banco-pruebas'
       preLoaderRoute: typeof BancoPruebasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/como-funciona': {
+      id: '/como-funciona'
+      path: '/como-funciona'
+      fullPath: '/como-funciona'
+      preLoaderRoute: typeof ComoFuncionaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/proveedores': {
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditoriaRoute: AuditoriaRoute,
   BancoPruebasRoute: BancoPruebasRoute,
+  ComoFuncionaRoute: ComoFuncionaRoute,
   ProveedoresRoute: ProveedoresRoute,
   ReglasRoute: ReglasRoute,
   SubirRoute: SubirRoute,
