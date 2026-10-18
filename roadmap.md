@@ -4,7 +4,7 @@
 - [x] Pruebas de protección y comprobación del Banco de pruebas.
 
 # Corrección del guardado de proveedores
-- [ ] Identificar el rechazo real al guardar contratos y corregir permisos y valores.
-- [ ] Guardar proveedor, contrato y evento sin cambios parciales.
-- [ ] Probar alta, edición, eliminación y protecciones; limpiar solo pruebas propias.
-- [ ] Confirmar Banco de pruebas sin reiniciar datos del usuario.
+- [x] Identificar el rechazo real al guardar contratos y corregir permisos y valores.
+- [x] Guardar proveedor, contrato y evento sin cambios parciales.
+- [x] Probar alta, edición, eliminación y protecciones; limpiar solo pruebas propias.
+- [x] Confirmar Banco de pruebas sin reiniciar datos del usuario.
