@@ -50,7 +50,7 @@ export function AccionTesoreria({ tramo }: { tramo: TramoPago }) {
   if (tramo.factura_liberada || tramo.liberado_lote_id) return <span className="text-xs text-muted-foreground">Lote autorizado</span>;
   return <div onClick={(e) => e.stopPropagation()}>
     {tramo.estado === "programado" ? <Select value="aprobado" onValueChange={abrir}>
-      <SelectTrigger className="w-36" aria-label={`Acción ${etiqueta}`}><SelectValue /></SelectTrigger>
+      <SelectTrigger className="w-36" aria-label={`Acción ${etiqueta}`}><SelectValue>Aprobado</SelectValue></SelectTrigger>
       <SelectContent><SelectItem value="aprobado">Aprobado</SelectItem><SelectItem value="parcial">Pago parcial</SelectItem><SelectItem value="postergar">Postergar</SelectItem></SelectContent>
     </Select> : <Button size="sm" variant="outline" onClick={() => abrir("reprogramar")}><CalendarClock className="mr-1 h-4 w-4" />Volver a programar</Button>}
     <Dialog open={accion !== null} onOpenChange={(open) => { if (!open && !guardando) setAccion(null); }}>

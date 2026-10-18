@@ -44,7 +44,7 @@ export function LiberarFondos({ cuenta, tramos, lotes }: { cuenta: CuentaBancari
       <p className="mt-1 text-right text-xs text-muted-foreground">{l.liberado_por} · {fmtFechaHora(l.liberado_en)}</p>
       <Button variant="outline" size="sm" className="mt-2" onClick={() => descargarLote(l)} aria-label={`Descargar lote (CSV) ${l.id}`}><Download className="mr-2 h-4 w-4" />Descargar lote (CSV)</Button>
     </div>)}
-    <Button className="w-full" variant="outline" disabled={!lote.filas.length} onClick={() => { setError(null); setUsuario(""); setComentario(""); setAbierto(true); }}><Unlock className="mr-2 h-4 w-4" />{lote.filas.length ? "Liberar fondos" : "Sin pagos por liberar"}</Button>
+    <Button className="w-full" variant={lote.filas.length ? "default" : "outline"} disabled={!lote.filas.length} onClick={() => { setError(null); setUsuario(""); setComentario(""); setAbierto(true); }}><Unlock className="mr-2 h-4 w-4" />{lote.filas.length ? `Liberar fondos · ${lote.cantidad} facturas` : "Sin pagos programados"}</Button>
     <Dialog open={abierto} onOpenChange={(v) => { if (!guardando) setAbierto(v); }}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader><DialogTitle>Liberar fondos · {cuenta.id}</DialogTitle><DialogDescription>Lote del {lote.fecha ? fmtFechaCorta(lote.fecha) : "—"} · {lote.cantidad} facturas</DialogDescription></DialogHeader>
