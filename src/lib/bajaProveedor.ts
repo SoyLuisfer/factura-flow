@@ -15,5 +15,5 @@ export function leerHistorialProveedor(valor: unknown): HistorialProveedor {
   for (const campo of ["facturas", "decisiones", "pagos", "contratos"]) {
     if (typeof h[campo] !== "number" || !Number.isSafeInteger(h[campo]) || Number(h[campo]) < 0) throw new Error("HISTORIAL_NO_DISPONIBLE");
   }
-  return { facturas: Number(h.facturas), decisiones: Number(h.decisiones), pagos: Number(h.pagos), contratos: Number(h.contratos) };
+  return { facturas: Number(h["facturas"]), decisiones: Number(h["decisiones"]), pagos: Number(h["pagos"]), contratos: Number(h["contratos"]) };
 }
