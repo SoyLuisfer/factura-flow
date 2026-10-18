@@ -219,6 +219,7 @@ export type Database = {
           numero: string | null
           pago_banco: string | null
           pago_cuenta: string | null
+          prueba_flujo_id: string | null
           receptor: string | null
           texto_original: string | null
           tipo_documento: string | null
@@ -241,6 +242,7 @@ export type Database = {
           numero?: string | null
           pago_banco?: string | null
           pago_cuenta?: string | null
+          prueba_flujo_id?: string | null
           receptor?: string | null
           texto_original?: string | null
           tipo_documento?: string | null
@@ -263,6 +265,7 @@ export type Database = {
           numero?: string | null
           pago_banco?: string | null
           pago_cuenta?: string | null
+          prueba_flujo_id?: string | null
           receptor?: string | null
           texto_original?: string | null
           tipo_documento?: string | null
@@ -624,6 +627,15 @@ export type Database = {
         Args: { p_accion: string; p_actor: string; p_id: string }
         Returns: string
       }
+      guardar_factura_procesada: {
+        Args: {
+          p_cotizacion?: string
+          p_decision: Json
+          p_eventos: Json
+          p_factura: Json
+        }
+        Returns: string
+      }
       guardar_proveedor: {
         Args: {
           p_actor: string
@@ -645,6 +657,7 @@ export type Database = {
         }
         Returns: string
       }
+      limpiar_prueba_flujo: { Args: { p_prueba: string }; Returns: undefined }
       marcar_cotizacion_utilizada: {
         Args: { p_actor: string; p_contrato_id: string; p_factura_id: string }
         Returns: undefined

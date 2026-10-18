@@ -18,7 +18,9 @@ import { construirContexto } from "@/lib/contexto";
 import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto, formatearTextoNumerico, formatearTipoCambio } from "@/lib/formato";
 import { MontoInput } from "@/components/monto-input";
-import { evaluarFactura, viernesPago, type Control, type FacturaEntrada } from "@/lib/motorReglas";
+import { type Control, type FacturaEntrada } from "@/lib/motorReglas";
+import { evaluarEntradaSegura } from "@/lib/procesamiento";
+import { diaGuatemala, viernesRecepcion } from "@/lib/fechas";
 import { MONEDAS_DISPONIBLES } from "@/lib/extraccion";
 
 export const Route = createFileRoute("/factura/$id")({
@@ -219,6 +221,8 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
   async function aprobar() {
     if (!usuario) return void toast.error("Elige quién aprueba");
     if (!comentario.trim()) return void toast.error("El comentario es obligatorio");
+    const diaRecepcion = diaGuatemala(factura.fecha_recepcion);
+    if (!diaRecepcion) return void toast.error("La fecha de recepción es inválida; no se puede aprobar.");
     setGuardando(true);
     try {
       const ajuste: Record<string, unknown> = {};
@@ -234,7 +238,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
           aprobador: usuario,
           aprobado_en: new Date().toISOString(),
           comentario_aprobacion: comentario.trim(),
-          fecha_programada_pago: viernesPago((factura.fecha_recepcion ?? new Date().toISOString()).slice(0, 10)),
+          fecha_programada_pago: viernesRecepcion(diaRecepcion),
           cuenta_pago: falloR7 ? cuentaElegida : decision.cuenta_pago,
           ajuste: Object.keys(ajuste).length > 0 ? (ajuste as unknown as import("@/integrations/supabase/types").Json) : null,
         })
@@ -508,9 +512,9 @@ function CorreccionDialog({ factura }: { factura: Factura }) {
         pago_banco: actualizacion.pago_banco,
         pago_cuenta: actualizacion.pago_cuenta,
         confianza_extraccion: 1, // corregida por humano
-        fecha_recepcion: factura.fecha_recepcion ?? new Date().toISOString(),
+        fecha_recepcion: factura.fecha_recepcion ?? "",
       };
-      const d = evaluarFactura(entrada, ctx);
+      const d = evaluarEntradaSegura(entrada, ctx);
       const ahora = new Date().toISOString();
       const { error: errD } = await supabase.from("decisiones").insert({
         factura_id: factura.id,

@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
+- Invoice ingestion uses `procesamiento.ts` to adapt Guatemala instants to pure engine dates and atomically persist invoice, decision, schedule, events and quote consumption; real-flow tests use isolated tagged rows and targeted cleanup. Why: malformed dates cannot approve or leave orphan invoices, and regression tests exercise the production persistence path without modifying real history.
 - Treasury instalments live in `programacion_pagos` and mutations use the validated, atomic `accion_tesoreria` RPC; `contexto.ts` splits full accrual (R9) from active cash rows without category (R10). Why: treasury never changes the agent decision/trace or double-counts budgets, while cash reservations reflect the actual schedule.
 - Human fund releases use atomic `liberar_fondos`, immutable batch snapshots and a unique invoice membership table; released schedules stay for accrual but are excluded from cash reservations and protected against treasury edits. Why: debited balances cannot be reserved twice or invoices released into multiple batches.
 - Monetary displays and CSV use `formatearMonto` from `src/lib/formato.ts`; editable amount fields use `MontoInput` with unformatted values for persistence. Why: consistent presentation cannot corrupt numeric writes.

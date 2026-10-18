@@ -58,7 +58,7 @@ export const facturasQuery = queryOptions({
   queryKey: ["facturas"],
   queryFn: async () => {
     await seedDemo();
-    const { data, error } = await supabase.from("facturas").select("*").order("fecha_recepcion").order("codigo");
+const { data, error } = await supabase.from("facturas").select("*").is("prueba_flujo_id", null).order("fecha_recepcion").order("codigo");
     if (error) throw error;
     return data;
   },
@@ -76,7 +76,7 @@ export const decisionesQuery = queryOptions({
       .select("*, factura:facturas!decisiones_factura_id_fkey(*), proveedor:proveedores(*)")
       .order("decidido_en", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as unknown as DecisionConRelaciones[];
+    return ((data ?? []) as unknown as DecisionConRelaciones[]).filter((d) => d.factura && !d.factura.prueba_flujo_id);
   },
 });
 

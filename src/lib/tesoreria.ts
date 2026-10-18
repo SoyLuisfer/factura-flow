@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { DecisionConRelaciones } from "@/lib/datos";
 import type { DecisionSalida } from "@/lib/motorReglas";
+import { diaGuatemala, fechaPura } from "@/lib/fechas";
 
 export type ProgramacionPago = Database["public"]["Tables"]["programacion_pagos"]["Row"];
 export type TramoPago = { id: string | null; decision: DecisionConRelaciones; monto: number; moneda: string; monto_usd: number; monto_cuenta: number; cuenta_pago: string; fecha_pago: string; estado: "programado" | "pospuesto"; liberado_lote_id?: string | null; factura_liberada?: boolean };
@@ -13,12 +14,13 @@ export const programacionQuery = queryOptions({ queryKey: ["programacion-pagos"]
 } });
 
 export function siguienteViernes(fecha: string, siguiente = false): string {
+  if (!fechaPura(fecha.slice(0,10))) return '';
   const d = new Date(`${fecha.slice(0, 10)}T12:00:00Z`);
   const delta = (5 - d.getUTCDay() + 7) % 7;
   d.setUTCDate(d.getUTCDate() + (delta === 0 || siguiente ? (delta || 7) : delta));
   return d.toISOString().slice(0, 10);
 }
-export function hoyGuatemala(): string { return new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" }); }
+export function hoyGuatemala(): string { return diaGuatemala(new Date().toISOString()) ?? ''; }
 
 export function obtenerTramos(decisiones: DecisionConRelaciones[], programaciones: ProgramacionPago[], cuentas: { id: string; moneda: string }[], tasas: { moneda: string; por_usd: number }[]): TramoPago[] {
   const ultimas = new Map<string, DecisionConRelaciones>();

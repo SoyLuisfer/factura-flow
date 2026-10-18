@@ -10,9 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, decisionesQuery, facturasQuery, politicasQuery, USUARIOS_DEMO } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
 import { fmtFechaHora, fmtMonto, formatearPorcentaje, formatearTipoCambio } from "@/lib/formato";
+import { evaluarEntradaSegura } from "@/lib/procesamiento";
 import { MontoInput } from "@/components/monto-input";
 import { PresupuestoCategorias } from "@/components/presupuesto-categorias";
-import { evaluarFactura, type ParametrosPolitica } from "@/lib/motorReglas";
+import { type ParametrosPolitica } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/reglas")({
   head: () => ({
@@ -128,12 +129,12 @@ function Reglas() {
           facturasRecibidas: ctxBase.facturasRecibidas.filter((fr) => fr.id !== f.id),
           decisionesPrevias: ctxBase.decisionesPrevias,
         };
-        const nueva = evaluarFactura(
+        const nueva = evaluarEntradaSegura(
           {
             id: f.id, codigo: f.codigo ?? undefined, canal: f.canal, tipo_documento: f.tipo_documento, emisor: f.emisor,
             receptor: f.receptor, numero: f.numero, fecha_emision: f.fecha_emision, fecha_vencimiento: f.fecha_vencimiento,
             descripcion: f.descripcion, monto: f.monto, moneda: f.moneda, pago_banco: f.pago_banco, pago_cuenta: f.pago_cuenta,
-            confianza_extraccion: f.confianza_extraccion, fecha_recepcion: f.fecha_recepcion ?? new Date().toISOString().slice(0, 10),
+            confianza_extraccion: f.confianza_extraccion, fecha_recepcion: f.fecha_recepcion ?? "",
           },
           ctx,
         );
