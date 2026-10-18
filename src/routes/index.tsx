@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { datosMaestrosQuery, decisionesQuery, empresaQuery, facturasQuery, type DecisionConRelaciones } from "@/lib/datos";
-import { ESTILO_DECISION, etiquetaDecision, fmtFechaCorta, fmtMonto, formatearPorcentaje } from "@/lib/formato";
+import { ESTILO_DECISION, etiquetaDecision, fmtFechaCorta, fmtMonto, formatearPorcentaje, formatearTextoNumerico } from "@/lib/formato";
 import { obtenerTramos, programacionQuery } from "@/lib/tesoreria";
 import { AccionTesoreria } from "@/components/accion-tesoreria";
 
@@ -137,7 +137,7 @@ function Tablero() {
               <>
                 <CeldaProveedor d={d} />
                 <CeldaMonto d={d} />
-                <TableCell className="max-w-md text-xs">{d.motivo}</TableCell>
+                <TableCell className="max-w-md text-xs">{formatearTextoNumerico(d.motivo)}</TableCell>
                 <TableCell><Badge variant="outline">{d.escalar_a ?? "Finanzas"}</Badge></TableCell>
                 <TableCell className="text-right tabular-nums tabular-nums">{Math.max(0, Math.floor((Date.now() - new Date(d.decidido_en).getTime()) / 86400000))}</TableCell>
               </>
@@ -160,7 +160,7 @@ function Tablero() {
                     </Link>
                   )}
                 </TableCell>
-                <TableCell className="max-w-md text-xs">{d.motivo}</TableCell>
+                <TableCell className="max-w-md text-xs">{formatearTextoNumerico(d.motivo)}</TableCell>
               </>
             )}
           />

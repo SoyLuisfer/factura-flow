@@ -51,7 +51,7 @@ export function adaptarProgramacion(decision: DecisionSalida, pagos: Pick<Progra
 export function validarAccion(tramo: Pick<TramoPago, "monto" | "fecha_pago">, accion: string, monto: number, fecha: string, actor: string, comentario: string): string | null {
   if (!actor) return "Elige el usuario responsable.";
   if (!comentario.trim()) return "El comentario es obligatorio.";
-  if (accion === "parcial" && (!Number.isFinite(monto) || monto <= 0 || monto >= tramo.monto || Math.round(monto * 100) !== monto * 100)) return "El pago parcial debe ser mayor que cero y menor que el total, con máximo dos decimales.";
+  if (accion === "parcial" && (!Number.isFinite(monto) || monto <= 0 || monto >= tramo.monto || Math.abs(Math.round(monto * 100) - monto * 100) > 0.000001)) return "El pago parcial debe ser mayor que cero y menor que el total, con máximo dos decimales.";
   if (accion !== "reprogramar" && (!fecha || fecha <= tramo.fecha_pago)) return "La nueva fecha debe ser posterior a la fecha programada actual.";
   return null;
 }
