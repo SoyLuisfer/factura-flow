@@ -32,3 +32,9 @@
 - [x] Formulario de proveedor con selector de tipo de relación y sección de contrato condicional
 - [x] R6: compra directa NO_APLICA, cotización utilizada FALLA/ESCALAR; consumo de cotización al aprobar
 - [x] Pruebas nuevas (compra directa aprueba, cotización usada escala) y verificación 18/18, Seguridad 0, Autonomía 67%, Doble carga OK
+
+## UX para el pitch (solo interfaz, sin escrituras de datos)
+- [ ] Atención pendiente, indicadores, pestañas y filas de tablero.
+- [ ] Tesorería, autoría humana, extracción y línea de tiempo.
+- [ ] Progreso de subida, skeletons y revisión desktop/celular.
+- [ ] Verificar regresiones sin reiniciar, cargar ni escribir datos.
