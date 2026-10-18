@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { decisionesQuery, eventosQuery, type Decision, type Factura, type Proveedor } from "@/lib/datos";
-import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaHora, fmtMonto } from "@/lib/formato";
+import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaHora, fmtMonto, formatearTextoNumerico } from "@/lib/formato";
 
 export const Route = createFileRoute("/auditoria")({
   head: () => ({
@@ -71,10 +71,10 @@ function Auditoria() {
     const encabezado = ["fecha_hora", "factura", "proveedor", "monto", "moneda", "monto_usd", "descripcion", "decision", "estado", "decidido_por", "aprobador", "fecha_programada", "cuenta", "politica", "motivo"];
     const lineas = filtradas.map((d) =>
       [
-        d.decidido_en, d.factura?.numero ?? "", d.proveedor?.nombre ?? d.factura?.emisor ?? "",
-        d.factura?.monto ?? "", d.factura?.moneda ?? "", d.monto_usd ?? "", d.factura?.descripcion ?? "",
-        etiquetaDecision(d.decision, d.estado), d.estado, d.decidido_por, d.aprobador ?? "", d.fecha_programada_pago ?? "",
-        d.cuenta_pago ?? "", d.politica_version ?? "", d.motivo,
+        fmtFechaHora(d.decidido_en), d.factura?.numero ?? "", d.proveedor?.nombre ?? d.factura?.emisor ?? "",
+        fmtMonto(d.factura?.monto, d.factura?.moneda), d.factura?.moneda ?? "", fmtMonto(d.monto_usd, "USD"), d.factura?.descripcion ?? "",
+        etiquetaDecision(d.decision, d.estado), d.estado, d.decidido_por, d.aprobador ?? "", fmtFecha(d.fecha_programada_pago),
+        d.cuenta_pago ?? "", d.politica_version ?? "", formatearTextoNumerico(d.motivo),
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(","),
@@ -164,7 +164,7 @@ function Auditoria() {
                     <TableCell className="text-xs">{fmtFecha(d.fecha_programada_pago)}</TableCell>
                     <TableCell className="font-mono text-xs">{d.cuenta_pago ?? "—"}</TableCell>
                     <TableCell className="font-mono text-xs">{d.politica_version ?? "—"}</TableCell>
-                    <TableCell className="max-w-64 text-xs">{d.motivo}</TableCell>
+                    <TableCell className="max-w-64 text-xs">{formatearTextoNumerico(d.motivo)}</TableCell>
                   </TableRow>
                 ))}
                 {filtradas.length === 0 && (
@@ -191,7 +191,7 @@ function Auditoria() {
                     <TableCell><Badge variant="secondary">{e.evento}</Badge></TableCell>
                     <TableCell className="text-xs">{e.actor}</TableCell>
                     <TableCell className="font-mono text-xs">{e.factura_id ? e.factura_id.slice(0, 8) + "…" : "—"}</TableCell>
-                    <TableCell className="max-w-xl text-xs">{e.detalle ?? "—"}</TableCell>
+                    <TableCell className="max-w-xl text-xs">{formatearTextoNumerico(e.detalle ?? "—")}</TableCell>
                   </TableRow>
                 ))}
                 {eventos.length === 0 && (

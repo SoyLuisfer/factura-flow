@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Upload, ScrollText, Scale, Building2, FlaskConical } from "lucide-react";
+import { LayoutDashboard, Upload, ScrollText, Scale, Building2, FlaskConical, CircleHelp } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
@@ -12,6 +12,7 @@ const items = [
   { title: "Reglas", url: "/reglas", icon: Scale },
   { title: "Proveedores", url: "/proveedores", icon: Building2 },
   { title: "Banco de pruebas", url: "/banco-pruebas", icon: FlaskConical },
+  { title: "Cómo funciona", url: "/como-funciona", icon: CircleHelp },
 ] as const;
 
 export function AppSidebar() {

@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, decisionesQuery, facturasQuery, politicasQuery, USUARIOS_DEMO } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
-import { fmtFechaHora, fmtMonto } from "@/lib/formato";
+import { fmtFechaHora, fmtMonto, formatearPorcentaje, formatearTipoCambio } from "@/lib/formato";
+import { MontoInput } from "@/components/monto-input";
+import { PresupuestoCategorias } from "@/components/presupuesto-categorias";
 import { evaluarFactura, type ParametrosPolitica } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/reglas")({
@@ -27,6 +29,7 @@ export const Route = createFileRoute("/reglas")({
     Promise.all([
       context.queryClient.ensureQueryData(politicasQuery),
       context.queryClient.ensureQueryData(datosMaestrosQuery),
+      context.queryClient.ensureQueryData(decisionesQuery),
     ]),
   component: Reglas,
 });
@@ -51,6 +54,7 @@ function Reglas() {
   const qc = useQueryClient();
   const { data: politicas } = useSuspenseQuery(politicasQuery);
   const { data: maestros } = useSuspenseQuery(datosMaestrosQuery);
+  const { data: decisiones } = useSuspenseQuery(decisionesQuery);
   const vigente = politicas.find((p) => p.vigente) ?? maestros.politica;
   const p = vigente.parametros as unknown as ParametrosPolitica;
 
@@ -166,6 +170,7 @@ function Reglas() {
         Política vigente: <span className="font-medium text-foreground">{vigente.version}</span>. Las versiones nunca se sobrescriben: guardar crea una nueva.
       </p>
 
+      <PresupuestoCategorias parametros={p} decisiones={decisiones} pagosPrevios={maestros.pagosPrevios} />
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* Formulario */}
         <div className="rounded-lg border bg-card p-5">
@@ -177,7 +182,7 @@ function Reglas() {
             </div>
             <div>
               <Label>Tope por pago (USD)</Label>
-              <Input className="mt-1 font-mono" value={tope} onChange={(e) => setTope(e.target.value)} inputMode="decimal" />
+              <MontoInput className="mt-1" value={tope} onValueChange={setTope} />
             </div>
             <div>
               <Label>Tolerancia contra contrato (%)</Label>
@@ -185,7 +190,7 @@ function Reglas() {
             </div>
             <div>
               <Label>Límite de postergación automática (USD)</Label>
-              <Input className="mt-1 font-mono" value={postMax} onChange={(e) => setPostMax(e.target.value)} inputMode="decimal" />
+              <MontoInput className="mt-1" value={postMax} onValueChange={setPostMax} />
             </div>
             <div>
               <Label>Guarda como</Label>
@@ -219,8 +224,8 @@ function Reglas() {
             {Object.entries(presupuestos).map(([cat, val]) => (
               <div key={cat}>
                 <Label className="text-xs text-muted-foreground">{cat}</Label>
-                <Input className="mt-1 font-mono" value={val} inputMode="decimal"
-                  onChange={(e) => setPresupuestos((prev) => ({ ...prev, [cat]: e.target.value }))} />
+                <MontoInput className="mt-1" value={val}
+                  onValueChange={(valor) => setPresupuestos((prev) => ({ ...prev, [cat]: valor }))} />
               </div>
             ))}
           </div>
@@ -230,8 +235,9 @@ function Reglas() {
             {Object.entries(tasas).map(([moneda, val]) => (
               <div key={moneda}>
                 <Label className="text-xs text-muted-foreground">{moneda}</Label>
-                <Input className="mt-1 font-mono" value={val} inputMode="decimal"
-                  onChange={(e) => setTasas((prev) => ({ ...prev, [moneda]: e.target.value }))} />
+                <MontoInput className="mt-1" value={val}
+                  onValueChange={(valor) => setTasas((prev) => ({ ...prev, [moneda]: valor }))} />
+                {moneda === "GTQ" && <p className="mt-1 text-right text-xs text-muted-foreground">{formatearTipoCambio(Number(val))}</p>}
               </div>
             ))}
           </div>
@@ -278,7 +284,7 @@ function Reglas() {
                       Creada por {pol.creada_por} · {fmtFechaHora(pol.creada_en)}
                     </div>
                     <div className="mt-1 font-mono text-xs text-muted-foreground">
-                      Tope {fmtMonto(pp.tope_por_pago_usd, "USD")} · tolerancia {pp.tolerancia_contrato_pct}% · postergación máx {fmtMonto(pp.postergacion_automatica_max_usd, "USD")}
+                      Tope {fmtMonto(pp.tope_por_pago_usd, "USD")} · tolerancia {formatearPorcentaje(pp.tolerancia_contrato_pct)} · postergación máx {fmtMonto(pp.postergacion_automatica_max_usd, "USD")}
                     </div>
                   </li>
                 );

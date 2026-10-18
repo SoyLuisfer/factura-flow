@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { contratosQuery, datosMaestrosQuery, proveedoresQuery, USUARIOS_DEMO, type Contrato, type Proveedor } from "@/lib/datos";
 import { fmtMonto } from "@/lib/formato";
+import { MontoInput } from "@/components/monto-input";
 
 export const Route = createFileRoute("/proveedores")({
   head: () => ({
@@ -430,7 +431,7 @@ function Proveedores() {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">Monto</Label>
-                        <Input className="mt-1 font-mono" value={form.contrato_monto} inputMode="decimal" onChange={(e) => setForm({ ...form, contrato_monto: e.target.value })} />
+                        <MontoInput className="mt-1" value={form.contrato_monto} onValueChange={(valor) => setForm({ ...form, contrato_monto: valor })} />
                       </div>
                     </>
                   )}

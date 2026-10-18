@@ -16,7 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, facturaDetalleQuery, USUARIOS_DEMO, type Decision, type Factura } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
 import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
-import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto } from "@/lib/formato";
+import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto, formatearTextoNumerico, formatearTipoCambio } from "@/lib/formato";
+import { MontoInput } from "@/components/monto-input";
 import { evaluarFactura, viernesPago, type Control, type FacturaEntrada } from "@/lib/motorReglas";
 import { MONEDAS_DISPONIBLES } from "@/lib/extraccion";
 
@@ -96,7 +97,7 @@ function DetalleFactura() {
                 <Badge className={`${ESTILO_DECISION[decision.decision as keyof typeof ESTILO_DECISION]} px-3 py-1 text-base`}>{etiquetaDecision(decision.decision, decision.estado)}</Badge>
                 <span className="text-xs text-muted-foreground">Política {decision.politica_version}</span>
               </div>
-              <p className="mt-3 text-sm">{decision.motivo}</p>
+              <p className="mt-3 text-sm">{formatearTextoNumerico(decision.motivo)}</p>
               <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <Campo etiqueta="Decidido por" valor={decision.estado === "aprobada_humano" ? `${decision.aprobador} (aprobación humana)` : decision.decidido_por} />
                 <Campo etiqueta="Fecha programada" valor={decision.fecha_programada_pago ? fmtFechaCorta(decision.fecha_programada_pago) : "—"} />
@@ -137,7 +138,7 @@ function DetalleFactura() {
                     </div>
                     {e.detalle && (
                       <div className="text-xs text-muted-foreground">
-                        {e.evento === "extraida" ? e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA") : e.detalle}
+                        {formatearTextoNumerico(e.evento === "extraida" ? e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA") : e.detalle)}
                       </div>
                     )}
                   </li>
@@ -176,7 +177,7 @@ function Campo({ etiqueta, valor, mono }: { etiqueta: string; valor: string | nu
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{etiqueta}</dt>
-      <dd className={mono ? "font-mono text-xs" : ""}>{valor ?? "—"}</dd>
+      <dd className={`${mono ? "tabular-nums text-xs" : ""} ${etiqueta.startsWith("Monto") ? "text-right" : ""}`}>{valor ?? "—"}</dd>
     </div>
   );
 }
@@ -347,7 +348,8 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Tipo de cambio (por USD)</Label>
-                <Input className="mt-1 font-mono" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} inputMode="decimal" />
+                <MontoInput className="mt-1" value={tipoCambio} onValueChange={setTipoCambio} />
+                <p className="mt-1 text-right text-xs text-muted-foreground">{formatearTipoCambio(tc)}</p>
               </div>
             </div>
             {montoConvertido != null && cuentaDest && (
@@ -581,7 +583,7 @@ function CorreccionDialog({ factura }: { factura: Factura }) {
                         {MONEDAS_DISPONIBLES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                  ) : <Input
+                  ) : c.clave === "monto" ? <MontoInput className="mt-1" value={valores.monto} onValueChange={(monto) => setValores((v) => ({ ...v, monto }))} /> : <Input
                     className="mt-1"
                     value={valores[c.clave]}
                     onChange={(e) => setValores((v) => ({ ...v, [c.clave]: e.target.value }))}

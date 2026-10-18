@@ -17,6 +17,7 @@ import { construirContexto } from "@/lib/contexto";
 import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { supabase } from "@/integrations/supabase/client";
 import { CASOS_PRUEBA } from "@/lib/casosPrueba";
+import { formatearMonto, formatearPorcentaje, formatearTextoNumerico, fmtFecha } from "@/lib/formato";
 import { procesarLote, type ResultadoLote, type TipoDecision } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/banco-pruebas")({
@@ -276,7 +277,7 @@ function BancoPruebas() {
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Autonomía</div>
-              <div className="mt-1 text-2xl font-semibold">{Math.round((autonomos / total) * 100)}%</div>
+              <div className="mt-1 text-2xl font-semibold">{formatearPorcentaje(Math.round((autonomos / total) * 100))}</div>
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="text-sm text-muted-foreground">Doble carga</div>
@@ -316,13 +317,13 @@ function BancoPruebas() {
                         <TableCell>{caso.canal}</TableCell>
                         <TableCell className="max-w-48 truncate">{caso.emisor}</TableCell>
                         <TableCell className="text-right font-mono text-xs">
-                          {caso.monto?.toLocaleString("en-US", { minimumFractionDigits: 2 })} {caso.moneda}
+                          {formatearMonto(caso.monto, caso.moneda)}
                         </TableCell>
                         <TableCell><Badge variant={VARIANTES_DECISION[caso.esperado]}>{ETIQUETA_DECISION[caso.esperado as TipoDecision]}</Badge></TableCell>
                         <TableCell><Badge variant={VARIANTES_DECISION[r.decision.decision]}>{ETIQUETA_DECISION[r.decision.decision]}</Badge></TableCell>
                         <TableCell>{ok ? <span title="Coincide">✅</span> : <span title="No coincide">❌</span>}</TableCell>
-                        <TableCell className="font-mono text-xs">{r.decision.fecha_programada_pago ?? "—"}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{r.decision.motivo}</TableCell>
+                        <TableCell className="tabular-nums text-xs">{fmtFecha(r.decision.fecha_programada_pago)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{formatearTextoNumerico(r.decision.motivo)}</TableCell>
                       </TableRow>
                       {abierto && (
                         <TableRow>
