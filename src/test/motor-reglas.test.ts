@@ -98,6 +98,39 @@ describe("evaluarFactura", () => {
   });
 });
 
+describe("R6 con tipo de relación", () => {
+  it("compra directa sin contrato se aprueba si cumple lo demás", () => {
+    const ctx: ContextoMotor = { ...ctxBase, proveedores: [{ ...ctxBase.proveedores[0]!, tipo_relacion: "compra_directa" }], contratos: [] };
+    const d = evaluarFactura(facturaOk, ctx);
+    expect(d.decision).toBe("PAGAR");
+    expect(d.controles.find((c) => c.regla === "R6")?.resultado).toBe("NO_APLICA");
+  });
+
+  it("una segunda factura contra una cotización ya utilizada se escala", () => {
+    const ctx: ContextoMotor = {
+      ...ctxBase,
+      proveedores: [{ ...ctxBase.proveedores[0]!, tipo_relacion: "cotizacion" }],
+      contratos: [{ id: "COT-V001-1", proveedor_id: "V001", concepto: "Campaña", monto: 2800, moneda: "USD", tipo: "unica", estado: "utilizada", factura_uso: "F05" }],
+    };
+    const d = evaluarFactura(facturaOk, ctx);
+    expect(d.decision).toBe("ESCALAR");
+    const r6 = d.controles.find((c) => c.regla === "R6");
+    expect(r6?.resultado).toBe("FALLA");
+    expect(r6?.detalle).toContain("COT-V001-1");
+  });
+
+  it("una cotización vigente se compara como antes y queda marcada para consumir al aprobar", () => {
+    const ctx: ContextoMotor = {
+      ...ctxBase,
+      proveedores: [{ ...ctxBase.proveedores[0]!, tipo_relacion: "cotizacion" }],
+      contratos: [{ id: "COT-V001-1", proveedor_id: "V001", concepto: "Campaña", monto: 2800, moneda: "USD", tipo: "unica", estado: "vigente" }],
+    };
+    const d = evaluarFactura(facturaOk, ctx);
+    expect(d.decision).toBe("PAGAR");
+    expect(d.cotizacion_a_consumir).toBe("COT-V001-1");
+  });
+});
+
 describe("doble carga (regresión)", () => {
   it("la segunda pasada frena por duplicado todo lo que la primera aprobó, escaló o postergó", () => {
     const primera = procesarLote([facturaOk], ctxBase);
