@@ -269,6 +269,77 @@ export type Database = {
         }
         Relationships: []
       }
+      lotes_pago: {
+        Row: {
+          comentario: string
+          cuenta: string
+          facturas_incluidas: Json
+          fecha_pago: string
+          id: string
+          liberado_en: string
+          liberado_por: string
+          total: number
+        }
+        Insert: {
+          comentario: string
+          cuenta: string
+          facturas_incluidas: Json
+          fecha_pago: string
+          id: string
+          liberado_en?: string
+          liberado_por: string
+          total: number
+        }
+        Update: {
+          comentario?: string
+          cuenta?: string
+          facturas_incluidas?: Json
+          fecha_pago?: string
+          id?: string
+          liberado_en?: string
+          liberado_por?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_pago_cuenta_fkey"
+            columns: ["cuenta"]
+            isOneToOne: false
+            referencedRelation: "cuentas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lotes_pago_facturas: {
+        Row: {
+          factura_id: string
+          lote_id: string
+        }
+        Insert: {
+          factura_id: string
+          lote_id: string
+        }
+        Update: {
+          factura_id?: string
+          lote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_pago_facturas_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: true
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_pago_facturas_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_pago"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagos_previos: {
         Row: {
           categoria: string
@@ -359,6 +430,7 @@ export type Database = {
           factura_id: string
           fecha_pago: string
           id: string
+          liberado_lote_id: string | null
           moneda: string
           monto: number
           monto_cuenta: number
@@ -372,6 +444,7 @@ export type Database = {
           factura_id: string
           fecha_pago: string
           id?: string
+          liberado_lote_id?: string | null
           moneda: string
           monto: number
           monto_cuenta: number
@@ -385,6 +458,7 @@ export type Database = {
           factura_id?: string
           fecha_pago?: string
           id?: string
+          liberado_lote_id?: string | null
           moneda?: string
           monto?: number
           monto_cuenta?: number
@@ -410,6 +484,13 @@ export type Database = {
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programacion_pagos_liberado_lote_id_fkey"
+            columns: ["liberado_lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_pago"
             referencedColumns: ["id"]
           },
         ]
@@ -553,6 +634,17 @@ export type Database = {
         Returns: string
       }
       historial_proveedor: { Args: { p_id: string }; Returns: Json }
+      liberar_fondos: {
+        Args: {
+          p_actor: string
+          p_comentario: string
+          p_cuenta: string
+          p_facturas: string[]
+          p_fecha: string
+          p_total: number
+        }
+        Returns: string
+      }
       marcar_cotizacion_utilizada: {
         Args: { p_actor: string; p_contrato_id: string; p_factura_id: string }
         Returns: undefined
