@@ -210,7 +210,7 @@ function CeldaProveedor({ d }: { d: DecisionConRelaciones }) {
 }
 
 function CeldaMonto({ d }: { d: DecisionConRelaciones }) {
-  return <TableCell className="text-right tabular-nums text-xs tabular-nums">{fmtMonto(d.factura?.monto, d.factura?.moneda)}</TableCell>;
+  return <TableCell className="whitespace-nowrap text-right tabular-nums text-xs">{fmtMonto(d.factura?.monto, d.factura?.moneda)}</TableCell>;
 }
 
 function TablaDecisiones({
