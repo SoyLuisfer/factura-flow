@@ -1,4 +1,10 @@
 # Proveedores: eliminación segura
+## Diseño global y tesorería
+- [ ] Lato y formato único de importes, porcentajes, tipos de cambio y formularios/CSV.
+- [ ] Tesorería y calendario en tablero; presupuesto con barras en Reglas.
+- [ ] Pago parcial, postergación y reprogramación auditables; R9 devengado/R10 programado sin modificar motor.
+- [ ] Verificar flujos, pruebas, nombre y Banco 18/18, Seguridad 0, Autonomía 67%, Doble carga OK.
+
 ## Nueva empresa demo y dos monedas
 - [x] Actualizar datos maestros y casos, conservando el motor intacto.
 - [x] Actualizar textos, monedas disponibles y validación de extracción.
