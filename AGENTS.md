@@ -10,6 +10,8 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
+- Pre-bundle newly introduced Radix UI primitives in Vite's optimizeDeps.include. Why: mid-session dependency re-optimization can leave the preview using stale React module instances and crash hook-based providers.
+- Route loading placeholders use the router's shared default pending component; invoice authorship and timeline labels are presentation-only views of existing audit fields. Why: loading stays visible without changing persistence or attributing human exceptions to the agent.
 - Invoice ingestion uses `procesamiento.ts` to adapt Guatemala instants to pure engine dates and atomically persist invoice, decision, schedule, events and quote consumption; real-flow tests use isolated tagged rows and targeted cleanup. Why: malformed dates cannot approve or leave orphan invoices, and regression tests exercise the production persistence path without modifying real history.
 - Treasury instalments live in `programacion_pagos` and mutations use the validated, atomic `accion_tesoreria` RPC; `contexto.ts` splits full accrual (R9) from active cash rows without category (R10). Why: treasury never changes the agent decision/trace or double-counts budgets, while cash reservations reflect the actual schedule.
 - Human fund releases use atomic `liberar_fondos`, immutable batch snapshots and a unique invoice membership table; released schedules stay for accrual but are excluded from cash reservations and protected against treasury edits. Why: debited balances cannot be reserved twice or invoices released into multiple batches.

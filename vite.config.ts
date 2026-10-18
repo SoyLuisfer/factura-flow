@@ -17,7 +17,7 @@ export default defineConfig({
     optimizeDeps: {
       include: [
         "@radix-ui/react-dialog", "@radix-ui/react-separator", "@radix-ui/react-slot",
-        "@radix-ui/react-tooltip", "class-variance-authority", "clsx", "lucide-react",
+        "@radix-ui/react-tooltip", "@radix-ui/react-progress", "class-variance-authority", "clsx", "lucide-react",
         "sonner", "tailwind-merge", "@supabase/supabase-js",
       ],
     },

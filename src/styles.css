@@ -19,6 +19,7 @@
  */
 
 @theme inline {
+  --shadow-subtle: 0 2px 8px color-mix(in srgb, var(--foreground) 4%, transparent);
   --font-sans: var(--fuente-sans);
   --font-mono: var(--fuente-sans);
   --radius-sm: calc(var(--radius) - 4px);
@@ -171,4 +172,8 @@
     font-variant-numeric: tabular-nums;
   }
   button, input, select, textarea, pre, code { font-family: inherit; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

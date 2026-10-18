@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowRight, Pencil, Inbox, Sparkles, Scale, UserCheck, UserX, FileCheck2, CalendarClock, Unlock, CircleDot } from "lucide-react";
 import { PanelControles } from "@/components/panel-controles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, facturaDetalleQuery, USUARIOS_DEMO, type Decision, type Factura } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
 import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
-import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto, formatearTextoNumerico, formatearTipoCambio } from "@/lib/formato";
+import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto, formatearTextoNumerico, formatearTipoCambio, formatearPorcentaje } from "@/lib/formato";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MontoInput } from "@/components/monto-input";
 import { type Control, type FacturaEntrada } from "@/lib/motorReglas";
 import { evaluarEntradaSegura } from "@/lib/procesamiento";
@@ -50,7 +51,7 @@ function DetalleFactura() {
   const decision = decisiones[0] ?? null;
 
   return (
-    <div className="px-6 py-8">
+    <div className="px-4 py-8 sm:px-6">
       <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Volver al tablero
       </Link>
@@ -71,8 +72,8 @@ function DetalleFactura() {
 
         {/* Derecha: datos + decisión */}
         <div className="space-y-6">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="flex items-center justify-between">
+          <div className="rounded-lg border bg-card p-4 shadow-subtle">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-bold">Datos extraídos</h2>
               <CorreccionDialog factura={factura} />
             </div>
@@ -80,11 +81,11 @@ function DetalleFactura() {
               <Campo etiqueta="Proveedor (emisor)" valor={factura.emisor} />
               <Campo etiqueta="Receptor" valor={factura.receptor} />
               <Campo etiqueta="Número" valor={factura.numero} mono />
-              <Campo etiqueta="Tipo de documento" valor={factura.tipo_documento} />
+              <Campo etiqueta="Tipo de documento" valor={factura.tipo_documento ? ({ factura: "Factura", invoice: "Factura", mensaje: "Mensaje de chat", chat: "Mensaje de chat", foto: "Foto", imagen: "Foto", cuenta_cobro: "Cuenta de cobro", cuenta_de_cobro: "Cuenta de cobro", recibo: "Recibo" }[factura.tipo_documento.toLowerCase()] ?? factura.tipo_documento.replace(/_/g, " ")) : factura.canal === "whatsapp" || factura.texto_original ? "Mensaje de chat" : "Sin identificar"} />
               <Campo etiqueta="Emisión" valor={fmtFecha(factura.fecha_emision)} />
               <Campo etiqueta="Vencimiento" valor={fmtFecha(factura.fecha_vencimiento)} />
               <Campo etiqueta="Monto" valor={fmtMonto(factura.monto, factura.moneda)} mono />
-              <Campo etiqueta="Confianza de extracción" valor={factura.confianza_extraccion != null ? String(factura.confianza_extraccion) : "—"} />
+              <div><dt className="text-xs text-muted-foreground">Confianza de extracción</dt><dd className={`font-bold ${factura.confianza_extraccion == null ? "text-muted-foreground" : factura.confianza_extraccion >= 0.9 ? "text-primary" : factura.confianza_extraccion >= 0.7 ? "text-decision-escalar" : "text-decision-frenar"}`}>{factura.confianza_extraccion != null ? formatearPorcentaje(factura.confianza_extraccion * 100) : "—"}</dd></div>
               <div className="col-span-2">
                 <Campo etiqueta="Descripción" valor={factura.descripcion} />
               </div>
@@ -93,13 +94,22 @@ function DetalleFactura() {
             </dl>
           </div>
 
+          {decision?.estado === "pendiente_aprobacion" && (
+            <AprobacionHumana factura={factura} decision={decision} cuentas={maestros.cuentas} />
+          )}
+
           {decision && (
-            <div className="rounded-lg border bg-card p-4">
+            <div className="rounded-lg border bg-card p-4 shadow-subtle">
               <div className="flex items-center justify-between gap-2">
                 <Badge className={`${ESTILO_DECISION[decision.decision as keyof typeof ESTILO_DECISION]} px-3 py-1 text-base`}>{etiquetaDecision(decision.decision, decision.estado)}</Badge>
                 <span className="text-xs text-muted-foreground">Política {decision.politica_version}</span>
               </div>
-              <p className="mt-3 text-sm">{formatearTextoNumerico(decision.motivo)}</p>
+              {decision.estado === "aprobada_humano" || decision.estado === "rechazada_humano" ? <div className="mt-4 space-y-3 border-y py-4">
+                <div className="flex items-start gap-2 text-sm"><Scale className="mt-0.5 size-4 shrink-0 text-decision-escalar" /><p><span className="font-bold">El agente lo escaló</span> · {(decision.controles as unknown as Control[]).filter((c) => c.resultado === "FALLA" || c.resultado === "NO_EVALUABLE").map((c) => c.regla).join(", ")} · {formatearTextoNumerico(decision.motivo)}</p></div>
+                <ArrowRight className="size-4 text-muted-foreground" />
+                <p className="text-sm font-bold">{decision.estado === "aprobada_humano" ? "Aprobado" : "Rechazado"} por {decision.aprobador} el {fmtFechaHora(decision.aprobado_en)}</p>
+                {decision.comentario_aprobacion && <blockquote className="border-l-2 border-primary pl-3 text-sm text-muted-foreground">{decision.comentario_aprobacion}</blockquote>}
+              </div> : <p className="mt-3 text-sm">{formatearTextoNumerico(decision.motivo)}</p>}
               <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <Campo etiqueta="Decidido por" valor={decision.estado === "aprobada_humano" ? `${decision.aprobador} (aprobación humana)` : decision.decidido_por} />
                 <Campo etiqueta="Fecha programada" valor={decision.fecha_programada_pago ? fmtFechaCorta(decision.fecha_programada_pago) : "—"} />
@@ -121,30 +131,22 @@ function DetalleFactura() {
             </div>
           )}
 
-          {decision?.estado === "pendiente_aprobacion" && (
-            <AprobacionHumana factura={factura} decision={decision} cuentas={maestros.cuentas} />
-          )}
-
-          <div className="rounded-lg border bg-card p-4">
-            <h2 className="font-bold">Línea de tiempo</h2>
+          <div className="rounded-lg border bg-card p-4 shadow-subtle">
+            <h2 className="font-bold">Línea de tiempo</h2><p className="mt-2 text-xs text-muted-foreground">Cada paso, con fecha y responsable.</p>
             {eventos.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">Sin eventos registrados.</p>
             ) : (
-              <ol className="mt-3 space-y-3 border-l pl-4">
-                {eventos.map((e) => (
-                  <li key={e.id} className="relative text-sm">
-                    <span className="absolute -left-[1.35rem] top-1.5 h-2 w-2 rounded-full bg-primary" />
-                    <div className="font-bold">{e.evento}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {fmtFechaHora(e.fecha_hora)} · {e.actor}
-                    </div>
-                    {e.detalle && (
-                      <div className="text-xs text-muted-foreground">
-                        {formatearTextoNumerico(e.evento === "extraida" ? e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA") : e.detalle)}
-                      </div>
-                    )}
-                  </li>
-                ))}
+              <ol className="mt-4 space-y-4 border-l pl-6">
+                {eventos.map((e) => {
+                  const evento = EVENTOS_VISUALES[e.evento] ?? { nombre: e.evento.replace(/_/g, " "), icono: CircleDot, tono: "text-muted-foreground" };
+                  const Icono = evento.icono;
+                  return <li key={e.id} className="relative text-sm">
+                    <span className={`absolute -left-9 top-0 grid size-6 place-items-center rounded-full border bg-card ${e.evento === "decidida" ? e.detalle?.includes("ESCALAR") ? "text-decision-escalar" : e.detalle?.includes("FRENAR") ? "text-decision-frenar" : e.detalle?.includes("POSTERGAR") ? "text-decision-postergar" : evento.tono : evento.tono}`}><Icono className="size-3.5" /></span>
+                    <div className="font-bold">{evento.nombre}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{fmtFechaHora(e.fecha_hora)} · {e.actor}</div>
+                    {e.detalle && <div className="mt-1 break-words text-xs text-muted-foreground">{formatearTextoNumerico(e.evento === "extraida" ? e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA ") : e.evento === "decidida" ? e.detalle.replace(/\bPAGAR\b/g, "Aprobado").replace(/\bFRENAR\b/g, "Frenado").replace(/\bESCALAR\b/g, "Escalado").replace(/\bPOSTERGAR\b/g, "Pospuesto") : e.detalle)}</div>}
+                  </li>;
+                })}
               </ol>
             )}
           </div>
@@ -153,6 +155,20 @@ function DetalleFactura() {
     </div>
   );
 }
+
+const EVENTOS_VISUALES = {
+  recibida: { nombre: "Recibida", icono: Inbox, tono: "text-primary" },
+  extraida: { nombre: "Datos extraídos con IA", icono: Sparkles, tono: "text-primary" },
+  decidida: { nombre: "Decisión del agente", icono: Scale, tono: "text-primary" },
+  aprobada: { nombre: "Aprobada por una persona", icono: UserCheck, tono: "text-decision-pagar" },
+  rechazada: { nombre: "Rechazada por una persona", icono: UserX, tono: "text-decision-frenar" },
+  cotizacion_utilizada: { nombre: "Cotización utilizada", icono: FileCheck2, tono: "text-primary" },
+  pago_parcial: { nombre: "Pago parcial", icono: CalendarClock, tono: "text-decision-postergar" },
+  pago_postergado: { nombre: "Pago postergado", icono: CalendarClock, tono: "text-decision-postergar" },
+  pago_reprogramado: { nombre: "Pago reprogramado", icono: CalendarClock, tono: "text-primary" },
+  fondos_liberados: { nombre: "Fondos liberados", icono: Unlock, tono: "text-decision-pagar" },
+  corregida: { nombre: "Datos corregidos", icono: Pencil, tono: "text-decision-escalar" },
+} as Record<string, { nombre: string; icono: typeof Inbox; tono: string }>;
 
 /** Si R3 falló por duplicado: enlace a la factura original, o el ID del pago previo (sin enlace). */
 function EnlaceDuplicado({ decision, relacionada }: { decision: Decision; relacionada: { id: string; codigo: string | null; numero: string | null } | null }) {
@@ -179,7 +195,7 @@ function Campo({ etiqueta, valor, mono }: { etiqueta: string; valor: string | nu
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{etiqueta}</dt>
-      <dd className={`${mono ? "tabular-nums text-xs" : ""} ${etiqueta.startsWith("Monto") ? "text-right" : ""}`}>{valor ?? "—"}</dd>
+      <dd className={`${mono ? "tabular-nums text-xs" : ""} ${etiqueta.startsWith("Monto") ? "text-right font-bold" : ""}`}>{valor ?? "—"}</dd>
     </div>
   );
 }
@@ -306,6 +322,14 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
         Esta decisión quedó escalada{decision.escalar_a ? ` a ${decision.escalar_a}` : ""}. La decisión original del agente y su traza se conservan.
       </p>
 
+      <div className="mt-4">        <div className="flex gap-2">
+          <Button onClick={aprobar} disabled={guardando} className="bg-primary text-primary-foreground hover:bg-primary-hover">
+            Aprobar pago
+          </Button>
+          <Button onClick={rechazar} disabled={guardando} className="bg-decision-frenar text-decision-frenar-foreground hover:opacity-90">
+            Rechazar
+          </Button>
+        </div></div>
       <div className="mt-4 space-y-4">
         <div>
           <Label>¿Quién decide?</Label>
@@ -376,14 +400,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
           <Textarea className="mt-1" value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder="Explica la decisión…" />
         </div>
 
-        <div className="flex gap-2">
-          <Button onClick={aprobar} disabled={guardando} className="bg-primary text-primary-foreground hover:bg-primary-hover">
-            Aprobar pago
-          </Button>
-          <Button onClick={rechazar} disabled={guardando} className="bg-decision-frenar text-decision-frenar-foreground hover:opacity-90">
-            Rechazar
-          </Button>
-        </div>
+
       </div>
     </div>
   );
@@ -409,7 +426,7 @@ function VisorDocumento({ factura }: { factura: Factura }) {
 
   if (factura.archivo_url) {
     if (!url) {
-      return <div className="flex h-[32rem] items-center justify-center text-sm text-muted-foreground">Cargando documento…</div>;
+      return <Skeleton className="h-[32rem] w-full" aria-label="Cargando documento" />;
     }
     const esPdf = (factura.nombre_archivo ?? factura.archivo_url).toLowerCase().endsWith(".pdf");
     return esPdf ? (
