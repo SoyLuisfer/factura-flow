@@ -24,6 +24,8 @@ export const Route = createFileRoute("/banco-pruebas")({
       { title: "Banco de pruebas — Contralor" },
       { name: "description", content: "Casos de prueba del motor de reglas y reinicio de datos demo." },
       { property: "og:title", content: "Banco de pruebas — Contralor" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:description", content: "Casos de prueba del motor de reglas." },
     ],
   }),

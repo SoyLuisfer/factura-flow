@@ -13,6 +13,8 @@ export const Route = createFileRoute("/")({
       { title: "Tablero — Contralor" },
       { name: "description", content: "Agente de cuentas por pagar de Andes Labs: decisiones auditables por factura." },
       { property: "og:title", content: "Tablero — Contralor" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:description", content: "Agente de cuentas por pagar con reglas deterministas y registro auditable." },
     ],
   }),

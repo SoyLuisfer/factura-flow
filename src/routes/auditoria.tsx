@@ -17,6 +17,8 @@ export const Route = createFileRoute("/auditoria")({
       { title: "Registro de auditoría — Contralor" },
       { name: "description", content: "Historial inalterable de cada evento y decisión." },
       { property: "og:title", content: "Registro de auditoría — Contralor" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:description", content: "Historial inalterable de cada evento y decisión." },
     ],
   }),
