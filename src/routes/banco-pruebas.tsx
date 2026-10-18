@@ -189,6 +189,11 @@ function BancoPruebas() {
       const { error: errE } = await supabase.from("registro_eventos").insert(eventosInsert);
       if (errE) throw errE;
 
+      // 4. Consumir cotizaciones de las facturas aprobadas
+      for (const { factura, decision: d } of res) {
+        await consumirCotizacionSiAplica(d, idPorCodigo.get(factura.codigo!)!, d.decidido_por);
+      }
+
       setResultados(res);
       setDobleCarga(verificarDobleCarga(res, ctx));
       await qc.invalidateQueries();

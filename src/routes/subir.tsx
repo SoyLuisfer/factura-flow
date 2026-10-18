@@ -130,6 +130,8 @@ export async function guardarFacturaProcesada(params: {
   ]);
   if (errE) throw errE;
 
+  await consumirCotizacionSiAplica(d, factura.id, d.decidido_por);
+
   return factura.id;
 }
 
