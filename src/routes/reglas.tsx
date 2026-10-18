@@ -38,7 +38,7 @@ const EXPLICACION_REGLAS: { regla: string; nombre: string; que: string; siFalla:
   { regla: "R3", nombre: "No es duplicado", que: "La misma factura no debe pagarse dos veces (ni por pago previo ni por otra recepción).", siFalla: "Se frena y se enlaza a la original." },
   { regla: "R4", nombre: "Proveedor registrado y autorizado", que: "El emisor debe estar en el registro, activo y con expediente completo.", siFalla: "Se escala a Contabilidad." },
   { regla: "R5", nombre: "Datos de pago coinciden", que: "La cuenta a la que pide pagar la factura debe ser la registrada del proveedor.", siFalla: "Se escala a Finanzas (posible fraude)." },
-  { regla: "R6", nombre: "Coincide con contrato o cotización", que: "El monto debe coincidir con el contrato dentro de la tolerancia configurada.", siFalla: "Se escala a Finanzas." },
+  { regla: "R6", nombre: "Coincide con contrato o cotización", que: "Compra directa: no aplica. Contrato recurrente o cotización vigente: el monto debe coincidir dentro de la tolerancia configurada. Una cotización ya utilizada no se puede usar de nuevo.", siFalla: "Se escala a Finanzas." },
   { regla: "R7", nombre: "Moneda compatible con la cuenta de pago", que: "La moneda de la factura debe poder pagarse desde la cuenta asignada.", siFalla: "Se escala a Finanzas para conversión manual." },
   { regla: "R8", nombre: "Bajo el tope por pago", que: "Ningún pago automático puede superar el tope en USD.", siFalla: "Se escala a Finanzas." },
   { regla: "R9", nombre: "Presupuesto del periodo", que: "La categoría debe tener presupuesto disponible en el mes.", siFalla: "Montos pequeños se postergan al mes siguiente; montos grandes se escalan." },
