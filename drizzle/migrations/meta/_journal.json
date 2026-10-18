@@ -92,6 +92,13 @@
       "when": 1792295860715,
       "tag": "0012_liberacion_fondos_lotes_atomicos",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792296028879,
+      "tag": "0013_corregir_alias_y_proteger_decisiones_liberadas",
+      "breakpoints": true
     }
   ]
 }
