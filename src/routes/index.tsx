@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { datosMaestrosQuery, decisionesQuery, empresaQuery, facturasQuery, type DecisionConRelaciones } from "@/lib/datos";
 import { ESTILO_DECISION, etiquetaDecision, fmtFechaCorta, fmtMonto, formatearPorcentaje, formatearTextoNumerico } from "@/lib/formato";
-import { obtenerTramos, programacionQuery } from "@/lib/tesoreria";
+import { obtenerTramos, programacionQuery, hoyGuatemala } from "@/lib/tesoreria";
 import { AccionTesoreria } from "@/components/accion-tesoreria";
 
 export const Route = createFileRoute("/")({
@@ -50,7 +50,8 @@ function Tablero() {
   const decididasAgente = decisiones.filter((x) => x.decidido_por === "Agente (automático)").length;
   const autonomia = decisiones.length > 0 ? Math.round((decididasAgente / decisiones.length) * 100) : 0;
 
-  const fechas = [...new Set(aprobados.map((t) => t.fecha_pago))].sort();
+  const proximos = aprobados.filter((t) => t.fecha_pago >= hoyGuatemala());
+  const fechas = [...new Set(proximos.map((t) => t.fecha_pago))].sort();
   const calendario = fechas.map((fecha) => {
     const pagos = aprobados.filter((t) => t.fecha_pago === fecha);
     const porMoneda = new Map<string, number>();
@@ -87,7 +88,7 @@ function Tablero() {
         <h2 className="text-lg font-bold">Tesorería</h2>
         <div className="mt-3 grid gap-4 md:grid-cols-2">
           {[...maestros.cuentas].sort((a,b) => a.id.localeCompare(b.id)).map((cuenta) => {
-            const pagos = aprobados.filter((t) => t.cuenta_pago === cuenta.id);
+            const pagos = proximos.filter((t) => t.cuenta_pago === cuenta.id);
             const fecha = [...new Set(pagos.map((t) => t.fecha_pago))].sort()[0];
             const total = pagos.filter((t) => t.fecha_pago === fecha).reduce((s,t) => s+t.monto_cuenta,0);
             const saldo = cuenta.saldo_disponible-total;
@@ -111,10 +112,10 @@ function Tablero() {
       {/* Pestañas */}
       <Tabs defaultValue="pagar" className="mt-8">
         <TabsList>
-          <TabsTrigger value="pagar">Aprobados ({aprobados.length})</TabsTrigger>
+          <TabsTrigger value="pagar">Aprobados ({new Set(aprobados.map((t) => t.decision.factura_id)).size})</TabsTrigger>
           <TabsTrigger value="escalar">Escalados (pendientes de aprobación) ({escalar.length})</TabsTrigger>
           <TabsTrigger value="frenar">Frenados ({frenar.length})</TabsTrigger>
-          <TabsTrigger value="postergar">Pospuestos ({pospuestos.length})</TabsTrigger>
+          <TabsTrigger value="postergar">Pospuestos ({new Set(pospuestos.map((t) => t.decision.factura_id)).size})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pagar">

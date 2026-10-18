@@ -22,7 +22,7 @@ export function formatearTextoNumerico(texto: string): string {
 export function fmtFecha(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso.length === 10 ? iso + "T00:00:00Z" : iso);
-  return d.toLocaleDateString("es-GT", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("es-GT", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: iso.length === 10 ? "UTC" : "America/Guatemala" });
 }
 
 /** "viernes 23/10" */
@@ -30,14 +30,14 @@ export function fmtFechaCorta(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso.length === 10 ? iso + "T00:00:00Z" : iso);
   const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-  return `${dias[d.getUTCDay()]} ${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
+  return `${dias[d.getUTCDay()]} ${String(d.getUTCDate()).padStart(2,"0")}/${String(d.getUTCMonth()+1).padStart(2,"0")}`;
 }
 
 /** "17/10/2026 19:52" — hora de Guatemala (UTC-6). */
 export function fmtFechaHora(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
-  return d.toLocaleString("es-GT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Guatemala" });
+  return d.toLocaleString("es-GT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Guatemala" }).replace(",", "");
 }
 
 /** Clases de insignia por decisión: PAGAR verde, FRENAR rojo, ESCALAR ámbar, POSTERGAR azul. */
