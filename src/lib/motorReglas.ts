@@ -132,6 +132,8 @@ export interface DecisionSalida {
   monto_cuenta: number | null;
   moneda_cuenta: string | null;
   periodo: string | null;
+  /** ID de la cotización que debe marcarse como utilizada si la decisión queda en PAGAR. */
+  cotizacion_a_consumir?: string | null;
 }
 
 export const ACTOR_AGENTE = "Agente (automático)";
@@ -468,6 +470,7 @@ export function evaluarFactura(f: FacturaEntrada, ctx: ContextoMotor): DecisionS
     monto_cuenta: montoCuenta,
     moneda_cuenta: cuenta?.moneda ?? null,
     periodo,
+    cotizacion_a_consumir: decision === "PAGAR" && contrato && contrato.tipo === "unica" && contrato.estado !== "utilizada" ? contrato.id : null,
   };
 }
 
