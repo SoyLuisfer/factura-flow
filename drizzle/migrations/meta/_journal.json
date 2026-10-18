@@ -78,6 +78,13 @@
       "when": 1792293813587,
       "tag": "0010_empresa_demo_pollos_hermanos",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792294225127,
+      "tag": "0011_programacion_tesoreria_auditable",
+      "breakpoints": true
     }
   ]
 }

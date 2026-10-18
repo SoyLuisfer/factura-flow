@@ -16,7 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, facturaDetalleQuery, USUARIOS_DEMO, type Decision, type Factura } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
 import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
-import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto } from "@/lib/formato";
+import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto, formatearTextoNumerico, formatearTipoCambio } from "@/lib/formato";
+import { MontoInput } from "@/components/monto-input";
 import { evaluarFactura, viernesPago, type Control, type FacturaEntrada } from "@/lib/motorReglas";
 import { MONEDAS_DISPONIBLES } from "@/lib/extraccion";
 
@@ -56,7 +57,7 @@ function DetalleFactura() {
         {/* Izquierda: documento original */}
         <div className="rounded-lg border bg-card">
           <div className="border-b px-4 py-3">
-            <h2 className="font-medium">Documento original</h2>
+            <h2 className="font-bold">Documento original</h2>
             <p className="text-xs text-muted-foreground">
               {factura.nombre_archivo ?? `Mensaje por ${factura.canal ?? "canal desconocido"}`} · Recibida {fmtFechaHora(factura.fecha_recepcion)}
             </p>
@@ -70,7 +71,7 @@ function DetalleFactura() {
         <div className="space-y-6">
           <div className="rounded-lg border bg-card p-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-medium">Datos extraídos</h2>
+              <h2 className="font-bold">Datos extraídos</h2>
               <CorreccionDialog factura={factura} />
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -96,7 +97,7 @@ function DetalleFactura() {
                 <Badge className={`${ESTILO_DECISION[decision.decision as keyof typeof ESTILO_DECISION]} px-3 py-1 text-base`}>{etiquetaDecision(decision.decision, decision.estado)}</Badge>
                 <span className="text-xs text-muted-foreground">Política {decision.politica_version}</span>
               </div>
-              <p className="mt-3 text-sm">{decision.motivo}</p>
+              <p className="mt-3 text-sm">{formatearTextoNumerico(decision.motivo)}</p>
               <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <Campo etiqueta="Decidido por" valor={decision.estado === "aprobada_humano" ? `${decision.aprobador} (aprobación humana)` : decision.decidido_por} />
                 <Campo etiqueta="Fecha programada" valor={decision.fecha_programada_pago ? fmtFechaCorta(decision.fecha_programada_pago) : "—"} />
@@ -105,12 +106,12 @@ function DetalleFactura() {
               </dl>
               {decision.ajuste != null && (
                 <div className="mt-3 rounded bg-muted p-3 text-xs">
-                  <span className="font-medium">Ajuste aplicado:</span>{" "}
-                  <span className="font-mono">{JSON.stringify(decision.ajuste)}</span>
+                  <span className="font-bold">Ajuste aplicado:</span>{" "}
+                  <span className="tabular-nums">{JSON.stringify(decision.ajuste)}</span>
                 </div>
               )}
 
-              <h3 className="mt-5 font-medium">¿Por qué?</h3>
+              <h3 className="mt-5 font-bold">¿Por qué?</h3>
               <div className="mt-2">
                 <PanelControles controles={decision.controles as unknown as Control[]} />
               </div>
@@ -123,7 +124,7 @@ function DetalleFactura() {
           )}
 
           <div className="rounded-lg border bg-card p-4">
-            <h2 className="font-medium">Línea de tiempo</h2>
+            <h2 className="font-bold">Línea de tiempo</h2>
             {eventos.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">Sin eventos registrados.</p>
             ) : (
@@ -131,13 +132,13 @@ function DetalleFactura() {
                 {eventos.map((e) => (
                   <li key={e.id} className="relative text-sm">
                     <span className="absolute -left-[1.35rem] top-1.5 h-2 w-2 rounded-full bg-primary" />
-                    <div className="font-medium">{e.evento}</div>
+                    <div className="font-bold">{e.evento}</div>
                     <div className="text-xs text-muted-foreground">
                       {fmtFechaHora(e.fecha_hora)} · {e.actor}
                     </div>
                     {e.detalle && (
                       <div className="text-xs text-muted-foreground">
-                        {e.evento === "extraida" ? e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA") : e.detalle}
+                        {formatearTextoNumerico(e.evento === "extraida" ? e.detalle.replace(/^Extraída con [^(]+/, "Extraída con IA") : e.detalle)}
                       </div>
                     )}
                   </li>
@@ -176,7 +177,7 @@ function Campo({ etiqueta, valor, mono }: { etiqueta: string; valor: string | nu
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{etiqueta}</dt>
-      <dd className={mono ? "font-mono text-xs" : ""}>{valor ?? "—"}</dd>
+      <dd className={`${mono ? "tabular-nums text-xs" : ""} ${etiqueta.startsWith("Monto") ? "text-right" : ""}`}>{valor ?? "—"}</dd>
     </div>
   );
 }
@@ -296,7 +297,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
 
   return (
     <div className="rounded-lg border border-decision-escalar bg-card p-4">
-      <h2 className="font-medium">Aprobación humana</h2>
+      <h2 className="font-bold">Aprobación humana</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         Esta decisión quedó escalada{decision.escalar_a ? ` a ${decision.escalar_a}` : ""}. La decisión original del agente y su traza se conservan.
       </p>
@@ -347,11 +348,12 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Tipo de cambio (por USD)</Label>
-                <Input className="mt-1 font-mono" value={tipoCambio} onChange={(e) => setTipoCambio(e.target.value)} inputMode="decimal" />
+                <MontoInput className="mt-1" value={tipoCambio} onValueChange={setTipoCambio} />
+                <p className="mt-1 text-right text-xs text-muted-foreground">{formatearTipoCambio(tc)}</p>
               </div>
             </div>
             {montoConvertido != null && cuentaDest && (
-              <p className="rounded bg-muted p-2 font-mono text-xs">
+              <p className="rounded bg-muted p-2 tabular-nums text-xs">
                 {fmtMonto(factura.monto, factura.moneda)} → {fmtMonto(montoConvertido, cuentaDest.moneda)} desde {cuentaElegida}
               </p>
             )}
@@ -414,7 +416,7 @@ function VisorDocumento({ factura }: { factura: Factura }) {
   }
   if (factura.texto_original) {
     return (
-      <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-muted p-4 font-mono text-xs leading-relaxed">
+      <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-muted p-4 tabular-nums text-xs leading-relaxed">
         {factura.texto_original}
       </pre>
     );
@@ -581,7 +583,7 @@ function CorreccionDialog({ factura }: { factura: Factura }) {
                         {MONEDAS_DISPONIBLES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                  ) : <Input
+                  ) : c.clave === "monto" ? <MontoInput className="mt-1" value={valores.monto} onValueChange={(monto) => setValores((v) => ({ ...v, monto }))} /> : <Input
                     className="mt-1"
                     value={valores[c.clave]}
                     onChange={(e) => setValores((v) => ({ ...v, [c.clave]: e.target.value }))}

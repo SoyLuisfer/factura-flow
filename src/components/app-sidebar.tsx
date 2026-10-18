@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Upload, ScrollText, Scale, Building2, FlaskConical } from "lucide-react";
+import { LayoutDashboard, Upload, ScrollText, Scale, Building2, FlaskConical, CircleHelp } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
@@ -12,6 +12,7 @@ const items = [
   { title: "Reglas", url: "/reglas", icon: Scale },
   { title: "Proveedores", url: "/proveedores", icon: Building2 },
   { title: "Banco de pruebas", url: "/banco-pruebas", icon: FlaskConical },
+  { title: "Cómo funciona", url: "/como-funciona", icon: CircleHelp },
 ] as const;
 
 export function AppSidebar() {
@@ -23,10 +24,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
         <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sidebar-primary font-mono text-sm font-bold text-sidebar-primary-foreground">C</div>
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sidebar-primary tabular-nums text-sm font-bold text-sidebar-primary-foreground">C</div>
           {!collapsed && (
             <div className="leading-tight">
-              <div className="font-semibold tracking-tight">Contralor</div>
+              <div className="font-bold tracking-tight">Contralor</div>
               <div className="text-xs text-sidebar-foreground/60">Pollos Hermanos, S. A.</div>
             </div>
           )}

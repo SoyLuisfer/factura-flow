@@ -350,6 +350,70 @@ export type Database = {
         }
         Relationships: []
       }
+      programacion_pagos: {
+        Row: {
+          actualizado_en: string
+          cuenta_pago: string
+          decision_id: string
+          estado: string
+          factura_id: string
+          fecha_pago: string
+          id: string
+          moneda: string
+          monto: number
+          monto_cuenta: number
+          monto_usd: number
+        }
+        Insert: {
+          actualizado_en?: string
+          cuenta_pago: string
+          decision_id: string
+          estado: string
+          factura_id: string
+          fecha_pago: string
+          id?: string
+          moneda: string
+          monto: number
+          monto_cuenta: number
+          monto_usd: number
+        }
+        Update: {
+          actualizado_en?: string
+          cuenta_pago?: string
+          decision_id?: string
+          estado?: string
+          factura_id?: string
+          fecha_pago?: string
+          id?: string
+          moneda?: string
+          monto?: number
+          monto_cuenta?: number
+          monto_usd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programacion_pagos_cuenta_pago_fkey"
+            columns: ["cuenta_pago"]
+            isOneToOne: false
+            referencedRelation: "cuentas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programacion_pagos_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisiones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programacion_pagos_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proveedores: {
         Row: {
           activo: boolean
@@ -462,6 +526,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accion_tesoreria: {
+        Args: {
+          p_accion: string
+          p_actor: string
+          p_comentario: string
+          p_decision: string
+          p_fecha: string
+          p_monto: number
+          p_programacion: string
+        }
+        Returns: undefined
+      }
       cargar_datos_maestros: { Args: never; Returns: undefined }
       gestionar_baja_proveedor: {
         Args: { p_accion: string; p_actor: string; p_id: string }

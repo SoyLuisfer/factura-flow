@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ContextoMotor, DecisionSalida, FacturaRecibidaLike, ParametrosPolitica, TipoDecision } from "@/lib/motorReglas";
+import { adaptarProgramacion } from "@/lib/tesoreria";
 
 /**
  * Construye el contexto del motor leyendo la base de datos.
@@ -10,7 +11,7 @@ import type { ContextoMotor, DecisionSalida, FacturaRecibidaLike, ParametrosPoli
 export async function construirContexto(opciones?: { incluirHistorial?: boolean }): Promise<ContextoMotor> {
   const incluirHistorial = opciones?.incluirHistorial ?? true;
 
-  const [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios, facturas, decisiones] = await Promise.all([
+  const [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios, facturas, decisiones, programacion] = await Promise.all([
     supabase.from("politicas").select("*").eq("vigente", true).limit(1).maybeSingle(),
     supabase.from("tipos_cambio").select("*"),
     supabase.from("proveedores").select("*"),
@@ -23,8 +24,9 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
     incluirHistorial
       ? supabase.from("decisiones").select("*, factura:facturas!decisiones_factura_id_fkey(id, numero, fecha_recepcion, monto, moneda)")
       : Promise.resolve({ data: [], error: null }),
+    incluirHistorial ? supabase.from("programacion_pagos").select("*") : Promise.resolve({ data: [], error: null }),
   ]);
-  for (const r of [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios, facturas, decisiones]) {
+  for (const r of [politica, tiposCambio, proveedores, contratos, cuentas, pagosPrevios, facturas, decisiones, programacion]) {
     if (r.error) throw r.error;
   }
   if (!politica.data) throw new Error("No hay política vigente");
@@ -63,7 +65,7 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
     decision: ultimaPorFactura.get(f.id)?.decision,
   }));
 
-  const decisionesPrevias: DecisionSalida[] = filas.map((d) => {
+  const decisionesPrevias: DecisionSalida[] = [...ultimaPorFactura.values()].flatMap((d): DecisionSalida[] => {
     const cuenta = d.cuenta_pago ? cuentasLista.find((c) => c.id === d.cuenta_pago) : undefined;
     const f = d.factura;
     let montoCuenta: number | null = null;
@@ -74,7 +76,7 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
         if (tasa) montoCuenta = Math.round(d.monto_usd * tasa * 100) / 100;
       }
     }
-    return {
+    const registro: DecisionSalida = {
       decision: d.decision,
       controles: [],
       motivo: "",
@@ -92,6 +94,8 @@ export async function construirContexto(opciones?: { incluirHistorial?: boolean 
       moneda_cuenta: cuenta?.moneda ?? null,
       periodo: (f?.fecha_recepcion ?? d.decidido_en).slice(0, 7),
     };
+    const pagos = (programacion.data ?? []).filter((p) => p.decision_id === d.id);
+    return pagos.length ? adaptarProgramacion(registro, pagos) : [registro];
   });
 
   const codigoPorFactura = new Map((facturas.data ?? []).map((f) => [f.id, f.codigo ?? f.numero ?? f.id]));

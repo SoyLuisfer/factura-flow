@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, XCircle, MinusCircle, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import type { Control, ResultadoControl } from "@/lib/motorReglas";
+import { formatearTextoNumerico } from "@/lib/formato";
 
 const ICONO_CONTROL: Record<ResultadoControl, React.ReactNode> = {
   OK: <CheckCircle2 className="h-4 w-4 text-decision-pagar" />,
@@ -25,7 +26,7 @@ function FilaControl({ c }: { c: Control }) {
           {c.regla} {c.control}
         </span>{" "}
         <span className="text-xs text-muted-foreground">({ETIQUETA_CONTROL[c.resultado]})</span>
-        <p className="text-xs text-muted-foreground">{c.detalle}</p>
+        <p className="text-xs text-muted-foreground">{formatearTextoNumerico(c.detalle)}</p>
       </div>
     </li>
   );

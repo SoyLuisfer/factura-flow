@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { decisionesQuery, eventosQuery, type Decision, type Factura, type Proveedor } from "@/lib/datos";
-import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaHora, fmtMonto } from "@/lib/formato";
+import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaHora, fmtMonto, formatearTextoNumerico } from "@/lib/formato";
 
 export const Route = createFileRoute("/auditoria")({
   head: () => ({
@@ -71,10 +71,10 @@ function Auditoria() {
     const encabezado = ["fecha_hora", "factura", "proveedor", "monto", "moneda", "monto_usd", "descripcion", "decision", "estado", "decidido_por", "aprobador", "fecha_programada", "cuenta", "politica", "motivo"];
     const lineas = filtradas.map((d) =>
       [
-        d.decidido_en, d.factura?.numero ?? "", d.proveedor?.nombre ?? d.factura?.emisor ?? "",
-        d.factura?.monto ?? "", d.factura?.moneda ?? "", d.monto_usd ?? "", d.factura?.descripcion ?? "",
-        etiquetaDecision(d.decision, d.estado), d.estado, d.decidido_por, d.aprobador ?? "", d.fecha_programada_pago ?? "",
-        d.cuenta_pago ?? "", d.politica_version ?? "", d.motivo,
+        fmtFechaHora(d.decidido_en), d.factura?.numero ?? "", d.proveedor?.nombre ?? d.factura?.emisor ?? "",
+        fmtMonto(d.factura?.monto, d.factura?.moneda), d.factura?.moneda ?? "", fmtMonto(d.monto_usd, "USD"), d.factura?.descripcion ?? "",
+        etiquetaDecision(d.decision, d.estado), d.estado, d.decidido_por, d.aprobador ?? "", fmtFecha(d.fecha_programada_pago),
+        d.cuenta_pago ?? "", d.politica_version ?? "", formatearTextoNumerico(d.motivo),
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(","),
@@ -90,7 +90,7 @@ function Auditoria() {
 
   return (
     <div className="px-6 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Registro de auditoría</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Registro de auditoría</h1>
       <p className="mt-1 text-sm text-muted-foreground">Cada decisión y cada evento quedan registrados; nada se edita ni se borra.</p>
 
       <Tabs defaultValue="decisiones" className="mt-6">
@@ -151,20 +151,20 @@ function Auditoria() {
               <TableBody>
                 {filtradas.map((d) => (
                   <TableRow key={d.id}>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">{fmtFechaHora(d.decidido_en)}</TableCell>
-                    <TableCell className="font-mono text-xs">{d.factura?.numero ?? "—"}</TableCell>
-                    <TableCell className="font-medium">{d.proveedor?.nombre ?? d.factura?.emisor ?? "—"}</TableCell>
-                    <TableCell className="text-right font-mono text-xs tabular-nums">{fmtMonto(d.factura?.monto, d.factura?.moneda)}</TableCell>
-                    <TableCell className="text-right font-mono text-xs tabular-nums">{fmtMonto(d.monto_usd, "USD")}</TableCell>
+                    <TableCell className="whitespace-nowrap tabular-nums text-xs">{fmtFechaHora(d.decidido_en)}</TableCell>
+                    <TableCell className="tabular-nums text-xs">{d.factura?.numero ?? "—"}</TableCell>
+                    <TableCell className="font-bold">{d.proveedor?.nombre ?? d.factura?.emisor ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums text-xs tabular-nums">{fmtMonto(d.factura?.monto, d.factura?.moneda)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-xs tabular-nums">{fmtMonto(d.monto_usd, "USD")}</TableCell>
                     <TableCell className="max-w-48 truncate text-xs">{d.factura?.descripcion ?? "—"}</TableCell>
                     <TableCell><Badge className={ESTILO_DECISION[d.decision as keyof typeof ESTILO_DECISION]}>{etiquetaDecision(d.decision, d.estado)}</Badge></TableCell>
                     <TableCell className="text-xs">{ETIQUETA_ESTADO[d.estado] ?? d.estado}</TableCell>
                     <TableCell className="text-xs">{d.decidido_por}</TableCell>
                     <TableCell className="text-xs">{d.aprobador ?? "—"}</TableCell>
                     <TableCell className="text-xs">{fmtFecha(d.fecha_programada_pago)}</TableCell>
-                    <TableCell className="font-mono text-xs">{d.cuenta_pago ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">{d.politica_version ?? "—"}</TableCell>
-                    <TableCell className="max-w-64 text-xs">{d.motivo}</TableCell>
+                    <TableCell className="tabular-nums text-xs">{d.cuenta_pago ?? "—"}</TableCell>
+                    <TableCell className="tabular-nums text-xs">{d.politica_version ?? "—"}</TableCell>
+                    <TableCell className="max-w-64 text-xs">{formatearTextoNumerico(d.motivo)}</TableCell>
                   </TableRow>
                 ))}
                 {filtradas.length === 0 && (
@@ -187,11 +187,11 @@ function Auditoria() {
               <TableBody>
                 {[...eventos].reverse().map((e) => (
                   <TableRow key={e.id}>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">{fmtFechaHora(e.fecha_hora)}</TableCell>
+                    <TableCell className="whitespace-nowrap tabular-nums text-xs">{fmtFechaHora(e.fecha_hora)}</TableCell>
                     <TableCell><Badge variant="secondary">{e.evento}</Badge></TableCell>
                     <TableCell className="text-xs">{e.actor}</TableCell>
-                    <TableCell className="font-mono text-xs">{e.factura_id ? e.factura_id.slice(0, 8) + "…" : "—"}</TableCell>
-                    <TableCell className="max-w-xl text-xs">{e.detalle ?? "—"}</TableCell>
+                    <TableCell className="tabular-nums text-xs">{e.factura_id ? e.factura_id.slice(0, 8) + "…" : "—"}</TableCell>
+                    <TableCell className="max-w-xl text-xs">{formatearTextoNumerico(e.detalle ?? "—")}</TableCell>
                   </TableRow>
                 ))}
                 {eventos.length === 0 && (
