@@ -76,7 +76,7 @@ function formDesde(p: Proveedor | null, contrato: Contrato | null, siguienteId: 
     activo: p?.activo ?? true,
     contrato_id: contrato?.id ?? "",
     contrato_concepto: contrato?.concepto ?? "",
-    contrato_tipo: contrato?.tipo ?? "contrato",
+    contrato_tipo: contrato?.tipo ?? "mensual",
     contrato_monto: contrato != null ? String(contrato.monto) : "",
     contrato_moneda: contrato?.moneda ?? "USD",
   };
@@ -141,6 +141,9 @@ function Proveedores() {
     if (m.includes("duplicate key") && m.includes("contratos_pkey")) return "Ya existe un contrato con ese ID.";
     if (m.includes("duplicate key")) return "Ya existe un registro con ese identificador.";
     if (m.includes("foreign key")) return "Un dato relacionado no existe (revisa la cuenta de pago).";
+    if (m.includes("CONTRATO_INVALIDO") || m.includes("contratos_tipo_check")) return "Revisa el tipo y el monto del contrato.";
+    if (m.includes("PROVEEDOR_NO_ENCONTRADO")) return "El proveedor ya no existe. Actualiza la lista.";
+    if (m.includes("CONTRATO_NO_ENCONTRADO")) return "El contrato ya no existe. Vuelve a abrir el proveedor.";
     if (m.includes("row-level security")) return "No tienes permiso para hacer este cambio.";
     return "No se pudo guardar. Intenta de nuevo.";
   }
@@ -170,6 +173,7 @@ function Proveedores() {
   async function guardar() {
     if (!form) return;
     if (!form.nombre.trim()) return void toast.error("El nombre es obligatorio");
+    if (form.contrato_monto && (!Number.isFinite(Number(form.contrato_monto)) || Number(form.contrato_monto) <= 0)) return void toast.error("El monto del contrato debe ser mayor que cero.");
     setGuardando(true);
     try {
       const fila = {
@@ -186,49 +190,30 @@ function Proveedores() {
         activo: form.activo,
       };
       let idProveedor = form.id;
-      if (editando === "nuevo") {
-        // Reintenta con el siguiente ID si el calculado choca con uno existente
-        let insertado = false;
-        for (let intento = 0; intento < 3 && !insertado; intento++) {
-          const { error } = await supabase.from("proveedores").insert({ id: idProveedor, ...fila });
-          if (!error) {
-            insertado = true;
-          } else if (error.message.includes("duplicate key") && error.message.includes("proveedores_pkey")) {
-            idProveedor = await siguienteIdProveedor();
-          } else {
-            throw error;
-          }
-        }
-        if (!insertado) throw new Error("duplicate key proveedores_pkey");
-      } else {
-        const { error } = await supabase.from("proveedores").update(fila).eq("id", form.id);
-        if (error) throw error;
-      }
-
-      // Contrato o cotización (opcional)
-      if (form.contrato_monto && Number(form.contrato_monto) > 0) {
-        const contratoFila = {
-          proveedor_id: idProveedor,
-          concepto: form.contrato_concepto.trim() || "Servicios",
-          tipo: form.contrato_tipo,
-          monto: Number(form.contrato_monto),
-          moneda: form.contrato_moneda,
-        };
-        if (form.contrato_id) {
-          const { error } = await supabase.from("contratos").update(contratoFila).eq("id", form.contrato_id);
-          if (error) throw error;
+      const contrato = form.contrato_monto ? {
+        id: form.contrato_id,
+        concepto: form.contrato_concepto.trim() || "Servicios",
+        tipo: form.contrato_tipo,
+        monto: Number(form.contrato_monto),
+        moneda: form.contrato_moneda,
+      } : null;
+      let guardado = false;
+      for (let intento = 0; intento < 3 && !guardado; intento++) {
+        const { error } = await supabase.rpc("guardar_proveedor", {
+          p_proveedor: { id: idProveedor, ...fila },
+          p_contrato: contrato,
+          p_nuevo: editando === "nuevo",
+          p_actor: USUARIOS_DEMO[0],
+        });
+        if (!error) {
+          guardado = true;
+        } else if (editando === "nuevo" && error.message.includes("duplicate key") && error.message.includes("proveedores_pkey")) {
+          idProveedor = await siguienteIdProveedor();
         } else {
-          const { error } = await supabase.from("contratos").insert({ id: `CT-${idProveedor}`, ...contratoFila });
-          if (error) throw error;
+          throw error;
         }
       }
-
-      const { error: errEv } = await supabase.from("registro_eventos").insert({
-        evento: "proveedor_modificado",
-        actor: USUARIOS_DEMO[0],
-        detalle: `${editando === "nuevo" ? "Alta" : "Edición"} del proveedor ${form.nombre.trim()} (${idProveedor}).`,
-      });
-      if (errEv) throw errEv;
+      if (!guardado) throw new Error("duplicate key proveedores_pkey");
 
       await qc.invalidateQueries();
       toast.success(editando === "nuevo" ? "Proveedor registrado" : "Proveedor actualizado");
@@ -415,8 +400,8 @@ function Proveedores() {
                     <Select value={form.contrato_tipo} onValueChange={(v) => setForm({ ...form, contrato_tipo: v })}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="contrato">Contrato</SelectItem>
-                        <SelectItem value="cotizacion">Cotización</SelectItem>
+                        <SelectItem value="mensual">Contrato mensual</SelectItem>
+                        <SelectItem value="unica">Cotización / pago único</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
