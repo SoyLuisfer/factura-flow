@@ -14,6 +14,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -98,9 +100,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootComponent,
+  pendingComponent: Chargement,
+  pendingMs: 150,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
+
+function Chargement() {
+  return <div className="space-y-8 p-6" aria-label="Cargando página"><Skeleton className="h-8 w-64" /><Skeleton className="h-16 w-full" /><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[1, 2, 3, 4].map((n) => <Skeleton key={n} className="h-32" />)}</div><Skeleton className="h-64 w-full" /></div>;
+}
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -125,9 +133,9 @@ function RootComponent() {
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="flex h-12 items-center gap-2 border-b bg-card px-2">
+            <header className="flex h-14 items-center gap-2 border-b bg-card px-4">
               <SidebarTrigger />
-              <span className="text-sm text-muted-foreground">Contralor · Demo (sin dinero real)</span>
+              <span className="text-sm font-bold">Contralor</span><Badge variant="outline" className="ml-auto text-xs font-normal text-muted-foreground">Demo · sin dinero real</Badge>
             </header>
             <main className="flex-1">
               <Outlet />

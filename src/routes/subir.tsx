@@ -48,8 +48,8 @@ interface ItemProceso {
 
 const ETIQUETA_ESTADO: Record<EstadoItem, string> = {
   subiendo: "Subiendo…",
-  leyendo: "Leyendo con IA…",
-  decidiendo: "Decidiendo con el motor…",
+  leyendo: "Leyendo documento…",
+  decidiendo: "Evaluando 11 reglas…",
   listo: "Listo",
   error: "Error",
 };
@@ -211,8 +211,11 @@ function SubirFactura() {
     void (async () => { for (const a of archivos) await procesarArchivo(a); })();
   }
 
+  const procesadas = items.filter((it) => it.estado === "listo");
+  const conteo = (decision: string) => procesadas.filter((it) => it.decision?.decision === decision).length;
+  const activo = items.find((it) => ["subiendo", "leyendo", "decidiendo"].includes(it.estado));
   return (
-    <div className="px-6 py-10">
+    <div className="px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-semibold tracking-tight">Subir factura</h1>
       <p className="mt-2 text-muted-foreground">
         La IA solo lee el documento y extrae los datos; la decisión la toma el motor de reglas. Acepta PDF, PNG, JPG o TXT.
@@ -286,11 +289,12 @@ function SubirFactura() {
 
       {items.length > 0 && (
         <div className="mt-8 max-w-4xl space-y-3">
-          <h2 className="font-medium">Progreso</h2>
+          <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-bold">Progreso</h2><p className="mt-2 text-sm text-muted-foreground" aria-live="polite">{procesadas.length} procesadas · {conteo("PAGAR")} aprobadas · {conteo("ESCALAR")} por aprobar · {conteo("FRENAR")} frenadas · {conteo("POSTERGAR")} pospuestas{items.some((it) => it.estado === "error") ? ` · ${items.filter((it) => it.estado === "error").length} con error` : ""}</p></div><Button variant="outline" asChild><Link to="/">Ir al tablero</Link></Button></div>
+          {activo && <div className="flex items-center gap-3 border-y py-4 text-sm text-primary" role="status"><Loader2 className="size-5 animate-spin" /><span>{ETIQUETA_ESTADO[activo.estado]}</span></div>}
           {items.map((it) => (
-            <div key={it.id} className="flex items-center gap-3 rounded-lg border bg-card p-3">
+            <div key={it.id} className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4 shadow-subtle">
               <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 basis-40 flex-1">
                 <div className="truncate text-sm font-medium">{it.nombre}</div>
                 {it.estado === "error" && <div className="text-xs text-decision-frenar">{it.detalle}</div>}
                 {it.estado === "listo" && it.extraccion && (
