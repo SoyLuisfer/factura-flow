@@ -55,6 +55,8 @@ export interface ProveedorLike {
   permite_conversion: boolean;
   banco_beneficiario: string | null;
   cuenta_beneficiario: string | null;
+  /** compra_directa | recurrente | cotizacion (ausente = se deduce del contrato). */
+  tipo_relacion?: string;
 }
 
 export interface ContratoLike {
@@ -64,6 +66,10 @@ export interface ContratoLike {
   monto: number;
   moneda: string;
   tipo: string;
+  /** vigente | utilizada (solo cotizaciones). */
+  estado?: string;
+  /** Código o número de la factura que consumió la cotización. */
+  factura_uso?: string | null;
 }
 
 export interface CuentaLike {
@@ -302,8 +308,11 @@ export function evaluarFactura(f: FacturaEntrada, ctx: ContextoMotor): DecisionS
 
   // R6 Coincide con contrato o cotización
   const contrato = proveedor ? ctx.contratos.find((c) => c.proveedor_id === proveedor.id) : undefined;
-  if (!contrato) {
-    agregar("R6", "Coincide con contrato o cotización", "NO_APLICA", "El proveedor no tiene contrato registrado.", null);
+  const tipoRelacion = proveedor ? (proveedor.tipo_relacion ?? (contrato ? (contrato.tipo === "unica" ? "cotizacion" : "recurrente") : "compra_directa")) : null;
+  if (!proveedor || !contrato || tipoRelacion === "compra_directa") {
+    agregar("R6", "Coincide con contrato o cotización", "NO_APLICA", "Compra directa: sin contrato ni cotización de referencia.", null);
+  } else if (tipoRelacion === "cotizacion" && contrato.estado === "utilizada") {
+    agregar("R6", "Coincide con contrato o cotización", "FALLA", `La cotización ${contrato.id} ya fue utilizada por la factura ${contrato.factura_uso ?? "registrada"}.`, "ESCALAR");
   } else if (f.moneda !== contrato.moneda) {
     agregar("R6", "Coincide con contrato o cotización", "FALLA", `La factura es en ${f.moneda} y el contrato ${contrato.id} es en ${contrato.moneda}.`, "ESCALAR");
   } else if (f.monto == null) {
