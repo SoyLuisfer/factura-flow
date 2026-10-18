@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { datosMaestrosQuery, reiniciarDemo } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
+import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { supabase } from "@/integrations/supabase/client";
 import { CASOS_PRUEBA } from "@/lib/casosPrueba";
 import { procesarLote, type ResultadoLote, type TipoDecision } from "@/lib/motorReglas";
