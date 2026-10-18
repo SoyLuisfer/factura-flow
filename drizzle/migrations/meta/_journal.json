@@ -64,6 +64,13 @@
       "when": 1792289360483,
       "tag": "0008_guardar_proveedor_con_contrato_atomico",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792290246760,
+      "tag": "0009_tipo_relacion_y_cotizaciones",
+      "breakpoints": true
     }
   ]
 }

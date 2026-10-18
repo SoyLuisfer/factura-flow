@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { datosMaestrosQuery, reiniciarDemo } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
+import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { supabase } from "@/integrations/supabase/client";
 import { CASOS_PRUEBA } from "@/lib/casosPrueba";
 import { procesarLote, type ResultadoLote, type TipoDecision } from "@/lib/motorReglas";
@@ -188,6 +189,11 @@ function BancoPruebas() {
       }));
       const { error: errE } = await supabase.from("registro_eventos").insert(eventosInsert);
       if (errE) throw errE;
+
+      // 4. Consumir cotizaciones de las facturas aprobadas
+      for (const { factura, decision: d } of res) {
+        await consumirCotizacionSiAplica(d, idPorCodigo.get(factura.codigo!)!, d.decidido_por);
+      }
 
       setResultados(res);
       setDobleCarga(verificarDobleCarga(res, ctx));

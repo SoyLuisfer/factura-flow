@@ -17,6 +17,8 @@ export type Database = {
       contratos: {
         Row: {
           concepto: string
+          estado: string
+          factura_id_uso: string | null
           id: string
           moneda: string
           monto: number
@@ -25,6 +27,8 @@ export type Database = {
         }
         Insert: {
           concepto: string
+          estado?: string
+          factura_id_uso?: string | null
           id: string
           moneda: string
           monto: number
@@ -33,6 +37,8 @@ export type Database = {
         }
         Update: {
           concepto?: string
+          estado?: string
+          factura_id_uso?: string | null
           id?: string
           moneda?: string
           monto?: number
@@ -358,6 +364,7 @@ export type Database = {
           pais: string
           permite_conversion: boolean
           tipo: string
+          tipo_relacion: string
         }
         Insert: {
           activo?: boolean
@@ -372,6 +379,7 @@ export type Database = {
           pais: string
           permite_conversion?: boolean
           tipo: string
+          tipo_relacion?: string
         }
         Update: {
           activo?: boolean
@@ -386,6 +394,7 @@ export type Database = {
           pais?: string
           permite_conversion?: boolean
           tipo?: string
+          tipo_relacion?: string
         }
         Relationships: [
           {
@@ -468,6 +477,10 @@ export type Database = {
         Returns: string
       }
       historial_proveedor: { Args: { p_id: string }; Returns: Json }
+      marcar_cotizacion_utilizada: {
+        Args: { p_actor: string; p_contrato_id: string; p_factura_id: string }
+        Returns: undefined
+      }
       normalizar_nombre_proveedor: { Args: { valor: string }; Returns: string }
       reiniciar_demo: { Args: never; Returns: undefined }
       seed_demo_si_vacio: { Args: never; Returns: boolean }

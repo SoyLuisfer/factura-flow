@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { ACTOR_AGENTE } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
+import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { evaluarFactura, type DecisionSalida, type FacturaEntrada } from "@/lib/motorReglas";
 import { extraerFactura } from "@/lib/extraccion.functions";
 import type { ExtraccionFactura } from "@/lib/extraccion";
@@ -129,6 +130,8 @@ export async function guardarFacturaProcesada(params: {
     { factura_id: factura.id, evento: "decidida", actor: d.decidido_por, detalle: `${d.decision} — ${d.motivo}`, fecha_hora: ahora },
   ]);
   if (errE) throw errE;
+
+  await consumirCotizacionSiAplica(d, factura.id, d.decidido_por);
 
   return factura.id;
 }

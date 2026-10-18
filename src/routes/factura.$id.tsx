@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, facturaDetalleQuery, USUARIOS_DEMO, type Decision, type Factura } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
+import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto } from "@/lib/formato";
 import { evaluarFactura, viernesPago, type Control, type FacturaEntrada } from "@/lib/motorReglas";
 
@@ -244,6 +245,17 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
         detalle: `Aprobación humana: ${comentario.trim()}`,
       });
       if (errEv) throw errEv;
+      // Si el proveedor tiene una cotización vigente, la aprobación la consume.
+      if (decision.proveedor_id) {
+        const { data: cot } = await supabase
+          .from("contratos")
+          .select("id")
+          .eq("proveedor_id", decision.proveedor_id)
+          .eq("tipo", "unica")
+          .eq("estado", "vigente")
+          .maybeSingle();
+        if (cot) await consumirCotizacionSiAplica({ decision: "PAGAR", cotizacion_a_consumir: cot.id }, factura.id, usuario);
+      }
       await qc.invalidateQueries();
       toast.success("Pago aprobado y programado");
       navigate({ to: "/" });
