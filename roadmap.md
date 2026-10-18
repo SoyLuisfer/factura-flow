@@ -1,8 +1,8 @@
 # Proveedores: eliminación segura
 ## Nueva empresa demo y dos monedas
-- [ ] Actualizar datos maestros y casos, conservando el motor intacto.
-- [ ] Actualizar textos, monedas disponibles y validación de extracción.
-- [ ] Reiniciar y cargar 18 casos; verificar tablero, banco y pruebas automáticas.
+- [x] Actualizar datos maestros y casos, conservando el motor intacto.
+- [x] Actualizar textos, monedas disponibles y validación de extracción.
+- [x] Reiniciar y cargar 18 casos; verificar tablero, banco y pruebas automáticas.
 
 - [x] Protección en la base y operación atómica con auditoría.
 - [x] Botón eliminar, confirmación, selector de usuario y desactivación con historial.
