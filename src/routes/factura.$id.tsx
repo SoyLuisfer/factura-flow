@@ -18,9 +18,9 @@ import { construirContexto } from "@/lib/contexto";
 import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto, formatearTextoNumerico, formatearTipoCambio } from "@/lib/formato";
 import { MontoInput } from "@/components/monto-input";
-import { viernesPago, type Control, type FacturaEntrada } from "@/lib/motorReglas";
+import { type Control, type FacturaEntrada } from "@/lib/motorReglas";
 import { evaluarEntradaSegura } from "@/lib/procesamiento";
-import { diaGuatemala } from "@/lib/fechas";
+import { diaGuatemala, viernesRecepcion } from "@/lib/fechas";
 import { MONEDAS_DISPONIBLES } from "@/lib/extraccion";
 
 export const Route = createFileRoute("/factura/$id")({
@@ -238,7 +238,7 @@ function AprobacionHumana({ factura, decision, cuentas }: { factura: Factura; de
           aprobador: usuario,
           aprobado_en: new Date().toISOString(),
           comentario_aprobacion: comentario.trim(),
-          fecha_programada_pago: viernesPago(diaRecepcion),
+          fecha_programada_pago: viernesRecepcion(diaRecepcion),
           cuenta_pago: falloR7 ? cuentaElegida : decision.cuenta_pago,
           ajuste: Object.keys(ajuste).length > 0 ? (ajuste as unknown as import("@/integrations/supabase/types").Json) : null,
         })

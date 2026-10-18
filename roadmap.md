@@ -1,8 +1,8 @@
 # Proveedores: eliminación segura
 ## Fechas y flujo real de subida
-- [ ] Normalizar recepción Guatemala y fechas puras, escalar fechas inválidas sin modificar reglas.
-- [ ] Guardado atómico sin huérfanos y errores en español.
-- [ ] Flujo real temporal de 18 casos, pruebas y reinicio final limpio.
+- [x] Normalizar recepción Guatemala y fechas puras, escalar fechas inválidas sin modificar reglas.
+- [x] Guardado atómico sin huérfanos y errores en español.
+- [x] Flujo real temporal de 18 casos, pruebas y reinicio final limpio.
 ## Liberación humana de fondos
 - [x] Lotes atómicos, bloqueo de duplicados, saldos y reinicio seguro.
 - [x] Diálogo por cuenta, badges, calendario y descarga CSV.
