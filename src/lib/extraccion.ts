@@ -38,3 +38,19 @@ export const EXTRACCION_VACIA: ExtraccionFactura = {
   confianza: 0,
   campos_dudosos: [],
 };
+
+export const MONEDAS_DISPONIBLES = ["USD", "GTQ"] as const;
+
+/** Normalización de datos extraídos, no de decisiones. */
+export function validarMonedaExtraida(extraccion: ExtraccionFactura): ExtraccionFactura {
+  const valor = extraccion.moneda?.trim().toUpperCase();
+  const moneda = valor === "Q" || valor === "GTQ" ? "GTQ"
+    : valor === "$" || valor === "US$" || valor === "USD" ? "USD" : null;
+  if (moneda) return { ...extraccion, moneda };
+  return {
+    ...extraccion,
+    moneda: null,
+    confianza: Math.min(extraccion.confianza, 0.3),
+    campos_dudosos: [...new Set([...extraccion.campos_dudosos, "moneda"])],
+  };
+}

@@ -1,3 +1,4 @@
+import { MONEDAS_DISPONIBLES } from "@/lib/extraccion";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/proveedores")({
   head: () => ({
     meta: [
       { title: "Proveedores — Contralor" },
-      { name: "description", content: "Proveedores y contratistas registrados de Andes Labs." },
+      { name: "description", content: "Proveedores y contratistas registrados de Pollos Hermanos, S. A.." },
       { property: "og:title", content: "Proveedores — Contralor" },
       { property: "og:description", content: "Proveedores y contratistas registrados." },
       { property: "og:type", content: "website" },
@@ -359,11 +360,11 @@ function Proveedores() {
                 <Label>Moneda de factura</Label>
                 <Select value={form.moneda_factura} onValueChange={(v) => setForm({ ...form, moneda_factura: v })}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{["USD", "GTQ", "COP", "MXN", "ARS"].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                  <SelectContent>{MONEDAS_DISPONIBLES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Cuenta de pago de Andes Labs</Label>
+                <Label>Cuenta de pago de Pollos Hermanos, S. A.</Label>
                 <Select value={form.cuenta_pago} onValueChange={(v) => setForm({ ...form, cuenta_pago: v })}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -424,7 +425,7 @@ function Proveedores() {
                         <Label className="text-xs text-muted-foreground">Moneda</Label>
                         <Select value={form.contrato_moneda} onValueChange={(v) => setForm({ ...form, contrato_moneda: v })}>
                           <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                          <SelectContent>{["USD", "GTQ", "COP", "MXN", "ARS"].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                          <SelectContent>{MONEDAS_DISPONIBLES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                       <div>

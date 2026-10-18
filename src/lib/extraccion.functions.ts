@@ -7,7 +7,7 @@ import { z } from "zod";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type ModelMessage } from "ai";
 import { createLovableAiGatewayRunIdFetch } from "@/lib/ai/run-id";
-import { EXTRACCION_VACIA, type ExtraccionFactura, type ResultadoExtraccion } from "@/lib/extraccion";
+import { EXTRACCION_VACIA, validarMonedaExtraida, type ExtraccionFactura, type ResultadoExtraccion } from "@/lib/extraccion";
 
 const MODELO = "openai/gpt-6-astra";
 
@@ -22,13 +22,14 @@ Devuelve un objeto JSON con exactamente estos campos:
 - fecha_vencimiento: AAAA-MM-DD
 - descripcion: concepto del cobro
 - monto: número, sin separadores de miles ni símbolos
-- moneda: código ISO (USD, GTQ, COP o MXN)
+- moneda: solo "USD" o "GTQ", o null
 - pago_banco: banco donde se pide el pago
 - pago_cuenta: número de cuenta donde se pide el pago
 - confianza: número de 0 a 1 según qué tan clara es la extracción
 - campos_dudosos: lista de campos que no quedaron claros
 
 Reglas:
+- "Q" o "GTQ" significa GTQ; "$", "US$" o "USD" significa USD. Si el documento indica otra moneda, devuelve moneda null, confianza no mayor de 0.3 e incluye "moneda" en campos_dudosos. No conviertas ni inventes monedas.
 - En facturas guatemaltecas el número es Serie-Número (Serie "KO" y Número "010" = "KO-010").
 - En una cuenta de cobro, "DEBE A" indica al emisor y el encabezado indica el receptor.
 - Un mensaje de chat que solo pide un pago, sin número ni fecha de documento, debe devolver tipo_documento null y numero null.`;
@@ -86,13 +87,14 @@ export const extraerFactura = createServerFn({ method: "POST" })
       fetch: runIdFetch.fetch,
     });
 
+    if (data.modo === "imagen" && !data.imagen) throw new Error("Falta la imagen del documento");
     const contenido: ModelMessage[] = [
       {
         role: "user",
         content:
           data.modo === "imagen"
             ? [
-                { type: "image", image: data.imagen! },
+                { type: "image", image: data.imagen ?? "" },
                 { type: "text", text: `Extrae los datos de este documento${data.nombreArchivo ? ` (${data.nombreArchivo})` : ""}.` },
               ]
             : [{ type: "text", text: `Extrae los datos de este documento${data.nombreArchivo ? ` (${data.nombreArchivo})` : ""}:\n\n${data.texto ?? ""}` }],
@@ -119,7 +121,7 @@ export const extraerFactura = createServerFn({ method: "POST" })
           },
         });
         const texto = await result.text;
-        return { extraccion: parsearExtraccion(texto), modelo: MODELO };
+        return { extraccion: validarMonedaExtraida(parsearExtraccion(texto)), modelo: MODELO };
       } catch (e) {
         ultimoError = e;
       }

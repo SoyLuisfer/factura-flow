@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Tablero — Contralor" },
-      { name: "description", content: "Agente de cuentas por pagar de Andes Labs: decisiones auditables por factura." },
+      { name: "description", content: "Agente de cuentas por pagar de Pollos Hermanos, S. A.: decisiones auditables por factura." },
       { property: "og:title", content: "Tablero — Contralor" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -71,7 +71,7 @@ function Tablero() {
     <div className="px-6 py-8">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{empresa?.razon_social ?? "Andes Labs LLC"}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{empresa?.razon_social ?? "Pollos Hermanos, S. A."}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Política {maestros.politica.version} · Periodo {periodo}
           </p>

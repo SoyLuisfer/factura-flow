@@ -27,7 +27,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="leading-tight">
               <div className="font-semibold tracking-tight">Contralor</div>
-              <div className="text-xs text-sidebar-foreground/60">Andes Labs LLC</div>
+              <div className="text-xs text-sidebar-foreground/60">Pollos Hermanos, S. A.</div>
             </div>
           )}
         </div>
