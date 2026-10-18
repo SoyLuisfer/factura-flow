@@ -1,10 +1,21 @@
 import type { TipoDecision } from "@/lib/datos";
 
-/** "USD 7,550.65" — monto con separador de miles y moneda visible. */
-export function fmtMonto(n: number | null | undefined, moneda?: string | null): string {
+/** Formato único de importes, también para CSV y campos. */
+export function formatearMonto(n: number | null | undefined, moneda?: string | null): string {
   if (n == null) return "—";
-  const v = n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return moneda ? `${moneda} ${v}` : v;
+  const v = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const prefijo = moneda === "GTQ" ? "Q " : moneda === "USD" ? "US$ " : moneda ? `${moneda} ` : "";
+  return n < 0 ? `(${prefijo}${v})` : `${prefijo}${v}`;
+}
+
+export const fmtMonto = formatearMonto;
+export function leerMonto(valor: string): number { return Number(valor.replace(/,/g, "").trim()); }
+export function formatearPorcentaje(valor: number): string { return `${Number(valor.toFixed(1))} %`; }
+export function formatearTipoCambio(valor: number): string { return `${formatearMonto(valor, "GTQ")} por ${formatearMonto(1, "USD")}`; }
+/** Solo presentación de textos de reglas/auditoría: el motor no se modifica. */
+export function formatearTextoNumerico(texto: string): string {
+  return texto.replace(/\b(USD|GTQ)\s+(-?\d[\d,]*(?:\.\d+)?)/g, (_, moneda: string, valor: string) => formatearMonto(leerMonto(valor), moneda))
+    .replace(/(-?\d+(?:\.\d+)?)%/g, (_, valor: string) => formatearPorcentaje(Number(valor)));
 }
 
 /** "23/10/2026" */
