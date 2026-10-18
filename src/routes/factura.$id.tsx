@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { supabase } from "@/integrations/supabase/client";
 import { datosMaestrosQuery, facturaDetalleQuery, USUARIOS_DEMO, type Decision, type Factura } from "@/lib/datos";
 import { construirContexto } from "@/lib/contexto";
+import { consumirCotizacionSiAplica } from "@/lib/cotizaciones";
 import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaCorta, fmtFechaHora, fmtMonto } from "@/lib/formato";
 import { evaluarFactura, viernesPago, type Control, type FacturaEntrada } from "@/lib/motorReglas";
 
