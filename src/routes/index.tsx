@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { datosMaestrosQuery, decisionesQuery, empresaQuery, facturasQuery, type DecisionConRelaciones } from "@/lib/datos";
-import { ESTILO_DECISION, fmtFechaCorta, fmtMonto } from "@/lib/formato";
+import { ESTILO_DECISION, etiquetaDecision, fmtFechaCorta, fmtMonto } from "@/lib/formato";
 import type { ParametrosPolitica } from "@/lib/motorReglas";
 
 export const Route = createFileRoute("/")({
@@ -126,9 +126,9 @@ function Tablero() {
       {/* Pestañas */}
       <Tabs defaultValue="pagar" className="mt-8">
         <TabsList>
-          <TabsTrigger value="pagar">Pagos programados ({pagar.length})</TabsTrigger>
-          <TabsTrigger value="escalar">Pendientes de aprobación ({escalar.length})</TabsTrigger>
-          <TabsTrigger value="frenar">Pagos no válidos ({frenar.length})</TabsTrigger>
+          <TabsTrigger value="pagar">Aprobados ({pagar.length})</TabsTrigger>
+          <TabsTrigger value="escalar">Escalados (pendientes de aprobación) ({escalar.length})</TabsTrigger>
+          <TabsTrigger value="frenar">Frenados ({frenar.length})</TabsTrigger>
           <TabsTrigger value="postergar">Pospuestos ({postergar.length})</TabsTrigger>
         </TabsList>
 
@@ -252,7 +252,7 @@ function TablaDecisiones({
           {filas.map((d) => (
             <TableRow key={d.id} className="cursor-pointer" onClick={() => navigate({ to: "/factura/$id", params: { id: d.factura_id } })}>
               <TableCell>
-                <Badge className={ESTILO_DECISION[d.decision as keyof typeof ESTILO_DECISION]}>{d.decision}</Badge>
+                <Badge className={ESTILO_DECISION[d.decision as keyof typeof ESTILO_DECISION]}>{etiquetaDecision(d.decision, d.estado)}</Badge>
               </TableCell>
               {renderFila(d)}
             </TableRow>

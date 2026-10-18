@@ -90,9 +90,35 @@ function Proveedores() {
 
   const contratoDe = (id: string) => contratos.find((c) => c.proveedor_id === id) ?? null;
 
-  function abrir(p: Proveedor | null) {
-    const nums = proveedores.map((x) => Number(x.id.replace(/^V/, ""))).filter((n) => !Number.isNaN(n));
-    const siguienteId = `V${String(Math.max(...nums, 0) + 1).padStart(3, "0")}`;
+  /** Traduce errores técnicos de la base a mensajes claros en español. */
+  function traducirError(e: Error): string {
+    const m = e.message;
+    if (m.includes("duplicate key") && m.includes("proveedores_pkey")) return "Ya existe un proveedor con ese ID.";
+    if (m.includes("duplicate key") && m.includes("contratos_pkey")) return "Ya existe un contrato con ese ID.";
+    if (m.includes("duplicate key")) return "Ya existe un registro con ese identificador.";
+    if (m.includes("foreign key")) return "Un dato relacionado no existe (revisa la cuenta de pago).";
+    if (m.includes("row-level security")) return "No tienes permiso para hacer este cambio.";
+    return "No se pudo guardar. Intenta de nuevo.";
+  }
+
+  /** Siguiente ID libre a partir del número más alto existente en la base (nunca contando filas). */
+  async function siguienteIdProveedor(): Promise<string> {
+    const { data, error } = await supabase.from("proveedores").select("id");
+    if (error) throw error;
+    const nums = (data ?? []).map((x) => Number(x.id.replace(/^V/, ""))).filter((n) => !Number.isNaN(n));
+    return `V${String(Math.max(0, ...nums) + 1).padStart(3, "0")}`;
+  }
+
+  async function abrir(p: Proveedor | null) {
+    let siguienteId = "";
+    if (!p) {
+      try {
+        siguienteId = await siguienteIdProveedor();
+      } catch {
+        toast.error("No se pudo calcular el siguiente ID de proveedor.");
+        return;
+      }
+    }
     setEditando(p ?? "nuevo");
     setForm(formDesde(p, p ? contratoDe(p.id) : null, siguienteId));
   }
@@ -115,9 +141,21 @@ function Proveedores() {
         expediente_completo: form.expediente_completo,
         activo: form.activo,
       };
+      let idProveedor = form.id;
       if (editando === "nuevo") {
-        const { error } = await supabase.from("proveedores").insert({ id: form.id, ...fila });
-        if (error) throw error;
+        // Reintenta con el siguiente ID si el calculado choca con uno existente
+        let insertado = false;
+        for (let intento = 0; intento < 3 && !insertado; intento++) {
+          const { error } = await supabase.from("proveedores").insert({ id: idProveedor, ...fila });
+          if (!error) {
+            insertado = true;
+          } else if (error.message.includes("duplicate key") && error.message.includes("proveedores_pkey")) {
+            idProveedor = await siguienteIdProveedor();
+          } else {
+            throw error;
+          }
+        }
+        if (!insertado) throw new Error("duplicate key proveedores_pkey");
       } else {
         const { error } = await supabase.from("proveedores").update(fila).eq("id", form.id);
         if (error) throw error;
@@ -126,7 +164,7 @@ function Proveedores() {
       // Contrato o cotización (opcional)
       if (form.contrato_monto && Number(form.contrato_monto) > 0) {
         const contratoFila = {
-          proveedor_id: form.id,
+          proveedor_id: idProveedor,
           concepto: form.contrato_concepto.trim() || "Servicios",
           tipo: form.contrato_tipo,
           monto: Number(form.contrato_monto),
@@ -136,7 +174,7 @@ function Proveedores() {
           const { error } = await supabase.from("contratos").update(contratoFila).eq("id", form.contrato_id);
           if (error) throw error;
         } else {
-          const { error } = await supabase.from("contratos").insert({ id: `CT-${form.id}`, ...contratoFila });
+          const { error } = await supabase.from("contratos").insert({ id: `CT-${idProveedor}`, ...contratoFila });
           if (error) throw error;
         }
       }
@@ -144,7 +182,7 @@ function Proveedores() {
       const { error: errEv } = await supabase.from("registro_eventos").insert({
         evento: "proveedor_modificado",
         actor: USUARIOS_DEMO[0],
-        detalle: `${editando === "nuevo" ? "Alta" : "Edición"} del proveedor ${form.nombre.trim()} (${form.id}).`,
+        detalle: `${editando === "nuevo" ? "Alta" : "Edición"} del proveedor ${form.nombre.trim()} (${idProveedor}).`,
       });
       if (errEv) throw errEv;
 
@@ -153,7 +191,7 @@ function Proveedores() {
       setEditando(null);
       setForm(null);
     } catch (e) {
-      toast.error("No se pudo guardar: " + (e as Error).message);
+      toast.error(traducirError(e as Error));
     } finally {
       setGuardando(false);
     }

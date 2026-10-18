@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { decisionesQuery, eventosQuery, type Decision, type Factura, type Proveedor } from "@/lib/datos";
-import { ESTILO_DECISION, fmtFecha, fmtFechaHora, fmtMonto } from "@/lib/formato";
+import { ESTILO_DECISION, etiquetaDecision, fmtFecha, fmtFechaHora, fmtMonto } from "@/lib/formato";
 
 export const Route = createFileRoute("/auditoria")({
   head: () => ({
@@ -71,7 +71,7 @@ function Auditoria() {
       [
         d.decidido_en, d.factura?.numero ?? "", d.proveedor?.nombre ?? d.factura?.emisor ?? "",
         d.factura?.monto ?? "", d.factura?.moneda ?? "", d.monto_usd ?? "", d.factura?.descripcion ?? "",
-        d.decision, d.estado, d.decidido_por, d.aprobador ?? "", d.fecha_programada_pago ?? "",
+        etiquetaDecision(d.decision, d.estado), d.estado, d.decidido_por, d.aprobador ?? "", d.fecha_programada_pago ?? "",
         d.cuenta_pago ?? "", d.politica_version ?? "", d.motivo,
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
@@ -105,10 +105,10 @@ function Auditoria() {
                 <SelectTrigger className="mt-1 w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
-                  <SelectItem value="PAGAR">PAGAR</SelectItem>
-                  <SelectItem value="FRENAR">FRENAR</SelectItem>
-                  <SelectItem value="ESCALAR">ESCALAR</SelectItem>
-                  <SelectItem value="POSTERGAR">POSTERGAR</SelectItem>
+                  <SelectItem value="PAGAR">Aprobado</SelectItem>
+                  <SelectItem value="FRENAR">Frenado</SelectItem>
+                  <SelectItem value="ESCALAR">Escalado</SelectItem>
+                  <SelectItem value="POSTERGAR">Pospuesto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -155,7 +155,7 @@ function Auditoria() {
                     <TableCell className="text-right font-mono text-xs tabular-nums">{fmtMonto(d.factura?.monto, d.factura?.moneda)}</TableCell>
                     <TableCell className="text-right font-mono text-xs tabular-nums">{fmtMonto(d.monto_usd, "USD")}</TableCell>
                     <TableCell className="max-w-48 truncate text-xs">{d.factura?.descripcion ?? "—"}</TableCell>
-                    <TableCell><Badge className={ESTILO_DECISION[d.decision as keyof typeof ESTILO_DECISION]}>{d.decision}</Badge></TableCell>
+                    <TableCell><Badge className={ESTILO_DECISION[d.decision as keyof typeof ESTILO_DECISION]}>{etiquetaDecision(d.decision, d.estado)}</Badge></TableCell>
                     <TableCell className="text-xs">{ETIQUETA_ESTADO[d.estado] ?? d.estado}</TableCell>
                     <TableCell className="text-xs">{d.decidido_por}</TableCell>
                     <TableCell className="text-xs">{d.aprobador ?? "—"}</TableCell>

@@ -16,7 +16,7 @@ import { evaluarFactura, type DecisionSalida, type FacturaEntrada } from "@/lib/
 import { extraerFactura } from "@/lib/extraccion.functions";
 import type { ExtraccionFactura } from "@/lib/extraccion";
 import { archivoADataUrl, leerPdf } from "@/lib/pdf";
-import { ESTILO_DECISION, fmtMonto } from "@/lib/formato";
+import { ESTILO_DECISION, ETIQUETA_DECISION, fmtMonto } from "@/lib/formato";
 import type { Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/subir")({
@@ -53,8 +53,9 @@ const ETIQUETA_ESTADO: Record<EstadoItem, string> = {
 
 const CANALES = ["correo", "whatsapp", "slack", "otro"] as const;
 
+/** Fecha de hoy en Guatemala (UTC-6), formato AAAA-MM-DD. */
 function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guatemala", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
 
 /** Guarda factura + decisión + eventos (recibida, extraida, decidida). Devuelve el id de la factura. */
@@ -374,7 +375,7 @@ function SubirFactura() {
               {it.estado === "error" && <XCircle className="h-4 w-4 text-decision-frenar" />}
               <span className="text-xs text-muted-foreground">{ETIQUETA_ESTADO[it.estado]}</span>
               {it.decision && (
-                <Badge className={ESTILO_DECISION[it.decision.decision]}>{it.decision.decision}</Badge>
+                <Badge className={ESTILO_DECISION[it.decision.decision]}>{ETIQUETA_DECISION[it.decision.decision]}</Badge>
               )}
               {it.facturaId && (
                 <Link to="/factura/$id" params={{ id: it.facturaId }} className="text-xs text-primary underline underline-offset-2">
